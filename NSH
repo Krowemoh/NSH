@@ -1,0 +1,1132 @@
+*ASI********************************************************************
+*                                                                      *
+* Create Date  Req#  Who  Description                                  *
+* 23 OCT 2021  N/A   NT   NovaShell v0.1                               *
+* 07 NOV 2021  N/A   NT   NovaShell v0.2                               *
+* 24 MAR 2022  N/A   NT   NovaShell v0.3                               *
+* 31 MAY 2022  N/A   NT   NovaShell v0.4                               *
+*                                                                      *
+************************************************************************
+* Special Instructions                                                 *
+*                                                                      *
+************************************************************************
+* Change History                                                       *
+*                                                                      *
+* Change Date  Req#  Who  Description                                  *
+* 07 NOV 2021  N/A   NT   Added Dynamic Terminal Escape Codes          *
+* 24 MAR 2022  N/A   NT   Add History Search with Arrow Keys           *
+*                         Enhance Autocomplete to Complete Substring   *
+*                         Don't Assume Files are Opened Successfully   *
+*                         Account Specific History Files               *
+*                         Auto Create NSH-HISTORY-FILE in Accounts     *
+*                         Clean Up SEARCH                              *
+*                         Allow multiple .X Command Numbers            *
+* 31 MAY 2022  N/A   NT   Move NSH-HISTORY-FILE to /tmp/               *
+*                         Remove Account Specific History              *
+*                                                                      *
+************************************************************************
+*
+* CONSTANTS
+*
+      @USER1 = 'NSH'
+      @USER2 = 'NSH'
+*
+      BOTTOM = @(0,66)
+*
+      EQU TRUE TO 1
+      EQU FALSE TO 0
+*
+* SYSTEM FILE FOR VERBS
+*
+      NEW.ACC.OPENED = TRUE
+      OPEN '','NEWACC' TO NEWACC.FILE ELSE
+         PRINT 'NSH: Unable to open file: NEWACC - Press RETURN'
+         INPUT ANYTHING
+         NEW.ACC.OPENED = FALSE
+      END
+*
+* SYSTEM FILE FOR HELP PAGES
+*
+      SYS.HELP.OPENED = TRUE
+      OPEN '','SYS.HELP' TO SYS.HELP.FILE ELSE
+         PRINT 'NSH: Unable to open file: SYS.HELP - Press RETURN'
+         INPUT ANYTHING
+         SYS.HELP.OPENED = FALSE
+      END
+*
+* SYSTEM FILE FOR BASIC PAGES
+*
+      BASIC.HELP.OPENED = TRUE
+      OPEN '','BASIC.HELP' TO BASIC.HELP.FILE ELSE
+         PRINT 'NSH: Unable to open file: BASIC.HELP - Press RETURN'
+         INPUT ANYTHING
+         BASIC.HELP.OPENED = FALSE
+      END
+*
+* FILE FOR SAVING COMMAND HISTORY
+*
+      NSH.HISTORY.OPENED = TRUE
+      OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
+         OPEN '','VOC' TO VOC.FILE ELSE
+            PRINT 'Unable to open file: VOC - Press RETURN':
+            INPUT ANYTHING
+            STOP
+         END
+         NSH.ENTRY = ''
+         NSH.ENTRY<1> = 'F'
+         NSH.ENTRY<2> = '/tmp/.nsh/'
+         NSH.ENTRY<3> = '/tmp/.nsh/'
+         WRITE NSH.ENTRY ON VOC.FILE,'NSH-HISTORY-FILE'
+*
+         OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
+            EXECUTE 'SH -c "mkdir /tmp/.nsh/"'
+            OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
+               NSH.HISTORY.OPENED = FALSE
+            END
+         END
+      END
+*
+* CLEARING LINES
+*
+      CLEAR.REST.OF.SCREEN = @(-3)
+      CLEAR.REST.OF.LINE = @(-4)
+      CLEAR.LINE = @(0) : CLEAR.REST.OF.LINE
+*
+      EQU HISTORY TO 1
+      EQU TRUE.HISTORY TO 2
+*
+      EQU KEY.CTRL.A TO CHAR(1)
+      EQU KEY.ESCAPE TO CHAR(27)
+      EQU KEY.BACKSPACE TO CHAR(8)
+      EQU KEY.TAB TO CHAR(9)
+      EQU KEY.LINE.FEED TO CHAR(10)
+      EQU KEY.CARRIAGE.RETURN TO CHAR(13)
+      EQU KEY.EXCLAIMATION.MARK TO CHAR(33)
+      EQU KEY.DELETE TO CHAR(127)
+*
+* MAKE TERMINAL MAX SIZE BASED ON WINTEGRATE
+*
+      EXECUTE 'TERM 132,66'
+*
+* TERMINAL INITIALIZATION
+*
+      EQU TERMINAL.TYPE.ATTRIBUTE TO 1
+      EQU TERMINAL.UP.ATTRIBUTE TO 2
+      EQU TERMINAL.DOWN.ATTRIBUTE TO 3
+      EQU TERMINAL.LEFT.ATTRIBUTE TO 4
+      EQU TERMINAL.RIGHT.ATTRIBUTE TO 5
+*
+      TERMINAL.CODES = TERMINFO(0)
+      TERMINAL.TYPE = FIELD(TERMINAL.CODES<1>,'|',1)
+*
+      IF TERMINAL.TYPE = 'vp' THEN
+         PRINT 'NSH: Re-mapped susp to ^B (Ctrl B)'
+         EXECUTE 'SH -c "stty susp ^B"'
+         TERMINAL.TYPE = 'viewpoint'
+      END
+*
+      TERMINAL = ''
+      TERMINAL<TERMINAL.TYPE.ATTRIBUTE,1> = TERMINAL.TYPE
+*
+      EXECUTE 'SH -c "infocmp "' : TERMINAL.TYPE CAPTURING RESULTS
+      RESULTS = CHANGE(RESULTS, ',', @VM)
+      RESULTS = CHANGE(RESULTS, '=', @SVM)
+*
+      UP.ESCAPE.CODE = 'kcuu1'
+      DOWN.ESCAPE.CODE = 'kcud1'
+      LEFT.ESCAPE.CODE = 'kcub1'
+      RIGHT.ESCAPE.CODE = 'kcuf1'
+*
+      FINDSTR UP.ESCAPE.CODE IN RESULTS SETTING AM.POS, VM.POS THEN
+         UP.ESCAPE.CODE = CHANGE(TRIM(RESULTS<AM.POS, VM.POS, 2>),'\E','')
+         TERMINAL<TERMINAL.UP.ATTRIBUTE,1> = UP.ESCAPE.CODE
+      END
+*
+      FINDSTR DOWN.ESCAPE.CODE IN RESULTS SETTING AM.POS, VM.POS THEN
+         DOWN.ESCAPE.CODE = CHANGE(TRIM(RESULTS<AM.POS, VM.POS, 2>),'\E','')
+         TERMINAL<TERMINAL.DOWN.ATTRIBUTE,1> = DOWN.ESCAPE.CODE
+      END
+*
+      FINDSTR LEFT.ESCAPE.CODE IN RESULTS SETTING AM.POS, VM.POS THEN
+         LEFT.ESCAPE.CODE = CHANGE(TRIM(RESULTS<AM.POS, VM.POS, 2>),'\E','')
+         TERMINAL<TERMINAL.LEFT.ATTRIBUTE,1> = LEFT.ESCAPE.CODE
+      END
+*
+      FINDSTR RIGHT.ESCAPE.CODE IN RESULTS SETTING AM.POS, VM.POS THEN
+         RIGHT.ESCAPE.CODE = CHANGE(TRIM(RESULTS<AM.POS, VM.POS, 2>),'\E','')
+         TERMINAL<TERMINAL.RIGHT.ATTRIBUTE,1> = RIGHT.ESCAPE.CODE
+      END
+*
+      TERMINAL.POS = 1
+*
+* SHELL INITIALIZATION
+*
+      USER.NAME = @ACCOUNT
+      COMMAND.HISTORY.FILE.NAME = USER.NAME : '.nsh_history'
+*
+      IF NSH.HISTORY.OPENED THEN
+         READ COMMAND.STACK FROM NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME ELSE COMMAND.STACK = ''
+      END ELSE
+         COMMAND.STACK = ''
+      END
+*
+      SEARCH.COMMAND = ''
+      USER.INPUT = TRUE
+      TRUE.HISTORY.STACK.POINTER = 0
+*
+      SERIES.VERBS = ''
+      SERIES.VERBS<1,-1> = 'SELECT'
+      SERIES.VERBS<1,-1> = 'SSELECT'
+      SERIES.VERBS<1,-1> = 'GET-LIST'
+      SERIES.VERBS<1,-1> = 'GET.LIST'
+      SERIES.VERBS<1,-1> = 'SEARCH'
+*
+      SERIES = ''
+*
+      COMMAND = ''
+      CURSOR.POSITION = -1
+*
+      TAB.PRESSED = FALSE
+*
+      PRINT.SHELL.PROMPT = TRUE
+*
+      LINUX.COMMAND.MODE = FALSE
+*
+      PRINT 'Welcome to NovaShell 0.3!'
+      CRT @(-37,1) : 'NSH: Your term is set to ' : TERMINAL.TYPE : '.'
+*
+* PRIMARY EXECUTATION LOOP
+*
+      LOOP WHILE TRUE DO
+         IF PRINT.SHELL.PROMPT THEN
+            SHELL.PREFIX = @ACCOUNT : ':' : @USERNO : '@' : @WHO
+            SHELL.DEFAULT.PROMPT = SHELL.PREFIX : '> '
+            SERIES.PROMPT = SHELL.PREFIX : '>> '
+*
+            IF SERIES = '' THEN
+               SHELL.PROMPT = SHELL.DEFAULT.PROMPT
+            END ELSE
+               SHELL.PROMPT = SERIES.PROMPT
+            END
+*
+            PRINT BOTTOM :
+            PRINT SHELL.PROMPT :
+*
+            CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+         END
+*
+         ESCAPE.SEQUENCE = ''
+*
+* SECONDARY INPUT LOOP
+*
+         LOOP WHILE TRUE DO
+            AT.BEGINNING = FALSE
+*
+* CHARACTER ENTRY
+*
+            CHR = KEYIN()
+*
+* PROCESS CHARACTER
+*
+            ASCII.CODE = SEQ(CHR)
+*
+            BEGIN CASE
+               CASE ASCII.CODE = SEQ(KEY.CARRIAGE.RETURN)
+                  LINUX.COMMAND.MODE = FALSE
+                  CURSOR.POSITION = LEN(SHELL.PROMPT)
+                  TRUE.HISTORY.STACK.POINTER = 0 ; 
+                  SEARCH.COMMAND = ''
+                  USER.INPUT = TRUE
+                  EXIT
+*
+               CASE ASCII.CODE = SEQ(KEY.TAB)
+                  TAB.PRESSED = TRUE
+                  EXIT
+*
+               CASE ASCII.CODE = SEQ(KEY.EXCLAIMATION.MARK)
+                  LINUX.COMMAND.MODE = TRUE
+                  PRINT CHR :
+                  COMMAND = COMMAND : CHR
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CONTINUE
+*
+               CASE ASCII.CODE = SEQ(KEY.CTRL.A)
+                  PRINT BOTTOM :
+                  PRINT SHELL.PROMPT :
+                  PRINT CLEAR.REST.OF.SCREEN :
+                  PRINT.SHELL.PROMPT = FALSE
+                  TRUE.HISTORY.STACK.POINTER = 0 ; 
+                  COMMAND = ''
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CONTINUE
+*
+               CASE ASCII.CODE = SEQ(KEY.BACKSPACE) OR ASCII.CODE = SEQ(KEY.DELETE)
+                  COMMAND.LENGTH = LEN(COMMAND)
+*
+                  TRUE.HISTORY.STACK.POINTER = 0 ; 
+                  SEARCH.COMMAND = ''
+                  USER.INPUT = TRUE
+*
+                  IF COMMAND.LENGTH = 0 THEN
+                     AT.BEGINNING = TRUE
+
+                  END ELSE IF COMMAND.LENGTH > 0 THEN
+*
+                     CURSOR.IN.COMMAND = CURSOR.POSITION - LEN(SHELL.PROMPT)
+*
+                     IF CURSOR.IN.COMMAND <= 0 THEN
+                        CONTINUE
+                     END
+*
+                     PRINT CHR :
+*
+                     CURSOR.POSITION = CURSOR.POSITION - 1
+*
+                     IF CURSOR.IN.COMMAND = LEN(COMMAND) THEN
+                        COMMAND = COMMAND[1,LEN(COMMAND) - 1]
+                        PRINT CLEAR.REST.OF.LINE :
+                     END ELSE
+*
+* SPECIAL DELETE FOR VIEWPOINT
+*
+                        IF TERMINAL<TERMINAL.TYPE.ATTRIBUTE, TERMINAL.POS> = 'viewpoint' THEN
+                           COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
+                           PRINT BOTTOM :
+                           PRINT SHELL.PROMPT :
+                           PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+                           PRINT @(-70, CURSOR.POSITION) :
+                        END ELSE
+                           COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
+                           PRINT @(-22) :
+                        END
+                     END
+                  END
+*
+                  CONTINUE
+*
+               CASE ASCII.CODE > 0 AND ASCII.CODE < 27
+                  ESCAPE.SEQUENCE = ASCII.CODE
+                  EXIT
+*
+               CASE ASCII.CODE = SEQ(KEY.ESCAPE)
+                  CHR = KEYIN()
+                  ESCAPE.SEQUENCE = CHR
+*
+                  IF CHR = 'O' THEN
+                     CHR = KEYIN()
+                     ESCAPE.SEQUENCE = ESCAPE.SEQUENCE : CHR
+                  END ELSE IF CHR = '[' THEN
+                     LOOP
+                        CHR = KEYIN()
+                        ESCAPE.SEQUENCE = ESCAPE.SEQUENCE : CHR
+                     UNTIL NOT(NUM(CHR)) DO REPEAT
+                  END
+*
+                  EXIT
+*
+               CASE ASCII.CODE >= SEQ('a') AND ASCII.CODE <= SEQ('z')
+                  IF NOT(LINUX.COMMAND.MODE) THEN
+                     CHR = OCONV(CHR,'MCU')
+                  END
+                  PRINT CHR :
+*
+               CASE ASCII.CODE >= SEQ('A') AND ASCII.CODE <= SEQ('Z')
+                  IF NOT(LINUX.COMMAND.MODE) THEN
+                     CHR = OCONV(CHR,'MCL')
+                  END
+                  PRINT CHR :
+*
+               CASE TRUE
+                  PRINT CHR :
+            END CASE
+*
+            IF NOT(AT.BEGINNING) THEN
+               CURSOR.POSITION.IN.COMMAND = CURSOR.POSITION - LEN(SHELL.PROMPT)
+               IF CURSOR.POSITION.IN.COMMAND = LEN(COMMAND) THEN
+                  COMMAND = COMMAND : CHR
+               END ELSE
+                  COMMAND = COMMAND[1,CURSOR.POSITION.IN.COMMAND] : CHR : COMMAND[CURSOR.POSITION.IN.COMMAND+1,9999]
+               END
+               CURSOR.POSITION = CURSOR.POSITION + 1
+            END
+*
+         REPEAT
+*
+         PRINT.SHELL.PROMPT = TRUE
+*
+         COMMAND.STACK.LENGTH = DCOUNT(COMMAND.STACK<HISTORY>, @VM)
+         TRUE.HISTORY.LENGTH = DCOUNT(COMMAND.STACK<TRUE.HISTORY>, @VM)
+*
+* ARROW KEY MANIPULATION
+*
+         IF ESCAPE.SEQUENCE # '' THEN
+            BEGIN CASE
+               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.UP.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 26 OR ESCAPE.SEQUENCE = 'OA'
+                  IF TRUE.HISTORY.STACK.POINTER < TRUE.HISTORY.LENGTH THEN
+                     TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER + 1
+                     IF COMMAND # '' AND USER.INPUT = TRUE THEN
+                        SEARCH.COMMAND = COMMAND
+                     END
+                     IF SEARCH.COMMAND # '' THEN
+                        PREVIOUS.COMMAND = COMMAND
+                        LOOP
+                           COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER>
+                        UNTIL (TRUE.HISTORY.STACK.POINTER >= TRUE.HISTORY.LENGTH OR INDEX(COMMAND,SEARCH.COMMAND,1)) # 0 AND PREVIOUS.COMMAND # COMMAND DO
+                           TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER + 1
+                        REPEAT
+                     END
+                  END
+*
+                  COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER>
+                  USER.INPUT = FALSE
+*
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+                  PRINT BOTTOM :
+                  PRINT SHELL.PROMPT :
+                  PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+*
+                  PRINT.SHELL.PROMPT = FALSE
+*
+                  CONTINUE
+*
+               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.DOWN.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 10 OR ESCAPE.SEQUENCE = 'OB'
+                  IF TRUE.HISTORY.STACK.POINTER > 1 THEN
+                     TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER - 1
+                     IF COMMAND # '' AND USER.INPUT = TRUE THEN
+                        SEARCH.COMMAND = COMMAND
+                     END
+                     IF SEARCH.COMMAND # '' THEN
+                        PREVIOUS.COMMAND = COMMAND
+                        LOOP
+                           COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER>
+                        UNTIL (TRUE.HISTORY.STACK.POINTER <= 0 OR INDEX(COMMAND,SEARCH.COMMAND,1)) AND PREVIOUS.COMMAND # COMMAND # 0 DO
+                           TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER - 1
+                        REPEAT
+                     END
+                  END
+*
+                  IF TRUE.HISTORY.STACK.POINTER <= 0 THEN
+                     TRUE.HISTORY.STACK.POINTER = 1
+                  END
+*
+                  COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER>
+                  USER.INPUT = FALSE
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+                  PRINT BOTTOM :
+                  PRINT SHELL.PROMPT :
+                  PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+*
+                  PRINT.SHELL.PROMPT = FALSE
+*
+                  CONTINUE
+*
+               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.LEFT.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 21 OR ESCAPE.SEQUENCE = 'OD'
+                  IF CURSOR.POSITION > LEN(SHELL.PROMPT) THEN
+                     CURSOR.POSITION = CURSOR.POSITION - 1
+                     PRINT @(CURSOR.POSITION, 66) :
+                     PRINT @(-20) :
+                  END
+*
+                  PRINT.SHELL.PROMPT = FALSE
+                  CONTINUE
+*
+               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.RIGHT.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 6 OR ESCAPE.SEQUENCE = 'OC'
+                  IF CURSOR.POSITION < (LEN(SHELL.PROMPT) + LEN(COMMAND)) THEN
+                     CURSOR.POSITION = CURSOR.POSITION + 1
+                     PRINT @(CURSOR.POSITION, 66) :
+                     PRINT @(-20) :
+                  END
+*
+                  PRINT.SHELL.PROMPT = FALSE
+                  CONTINUE
+*
+               CASE TRUE
+                  PRINT
+                  PRINT 'NSH: Escape Sequence: ' : ESCAPE.SEQUENCE : ' not implemented.' :
+            END CASE
+         END
+*
+* TAB MANIPULATION
+*
+         IF TAB.PRESSED THEN
+            TAB.PRESSED = FALSE
+            NUMBER.OF.ARGUMENTS = DCOUNT(TRIM(COMMAND), ' ')
+*
+            VERB = FIELD(COMMAND,' ',1)
+*
+            BEGIN CASE
+               CASE NEW.ACC.OPENED AND NUMBER.OF.ARGUMENTS = 1
+                  STATEMENT = 'SSELECT NEWACC = "': TRIM(COMMAND) : ']"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+*
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+*
+                  IF RECORDS.SELECTED = 1 THEN
+                     READNEXT ITEM.ID ELSE ITEM.ID = ''
+                     READV ITEM.DESCRIPTION FROM NEWACC.FILE, ITEM.ID, 1 ELSE ITEM.DESCRIPTION = ''
+*
+                     PRINT
+                     PRINT ITEM.ID 'L#25' : ITEM.DESCRIPTION
+                     PRINT BOTTOM :
+                     PRINT SHELL.PROMPT :
+                     PRINT ITEM.ID : CLEAR.REST.OF.SCREEN :
+*
+                     COMMAND = ITEM.ID
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+*
+                  END ELSE IF RECORDS.SELECTED = 0 THEN
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+*
+                  END ELSE
+                     PRINT
+                     FIRST.WORD = ''
+                     LAST.WORD = ''
+                     LOOP
+                        READNEXT ITEM.ID ELSE ITEM.ID = ''
+                     UNTIL ITEM.ID = '' DO
+                        READV ITEM.DESCRIPTION FROM NEWACC.FILE, ITEM.ID, 1 ELSE ITEM.DESCRIPTION = ''
+                        PRINT ITEM.ID 'L#25' : ITEM.DESCRIPTION
+                        IF FIRST.WORD = '' THEN FIRST.WORD = ITEM.ID
+                        LAST.WORD = ITEM.ID
+                     REPEAT
+*
+                     COMPLETED.WORD = ''
+                     FOR I = 1 TO LEN(FIRST.WORD)
+                        IF FIRST.WORD[I,1] = LAST.WORD[I,1] THEN
+                           COMPLETED.WORD = COMPLETED.WORD : FIRST.WORD[I,1]
+                        END ELSE EXIT
+                     NEXT I
+*
+                     COMMAND = COMPLETED.WORD
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+                     PRINT BOTTOM :
+                     PRINT SHELL.PROMPT :
+                     PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+                  END
+*
+               CASE VERB # 'MAN' AND NUMBER.OF.ARGUMENTS = 2
+                  VERB = TRIM(FIELD(COMMAND, ' ', 1))
+                  WORD = FIELD(COMMAND, ' ', 2)
+                  LENGTH.UP.TO.WORD = COL1()
+                  CURRENT.COMMAND = COMMAND[1, LENGTH.UP.TO.WORD]
+*
+                  STATEMENT = 'SSELECT MD = "': WORD : ']" AND WITH F1 = "F]""Q]"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+*
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+*
+                  IF RECORDS.SELECTED = 1 THEN
+                     READNEXT ITEM.ID ELSE ITEM.ID = ''
+*
+                     PRINT
+                     PRINT ITEM.ID
+                     PRINT BOTTOM :
+                     PRINT SHELL.PROMPT :
+                     PRINT VERB : ' ' : ITEM.ID : CLEAR.REST.OF.SCREEN :
+*
+                     COMMAND = VERB : ' ' : ITEM.ID
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+*
+                  END ELSE IF RECORDS.SELECTED = 0 THEN
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+*
+                  END ELSE
+                     PRINT
+                     FIRST.WORD = ''
+                     LAST.WORD = ''
+                     LOOP
+                        READNEXT ITEM.ID ELSE ITEM.ID = ''
+                     UNTIL ITEM.ID = '' DO
+                        PRINT ITEM.ID
+                        IF FIRST.WORD = '' THEN FIRST.WORD = ITEM.ID
+                        LAST.WORD = ITEM.ID
+                     REPEAT
+*
+                     COMPLETED.WORD = ''
+                     FOR I = 1 TO LEN(FIRST.WORD)
+                        IF FIRST.WORD[I,1] = LAST.WORD[I,1] THEN
+                           COMPLETED.WORD = COMPLETED.WORD : FIRST.WORD[I,1]
+                        END ELSE EXIT
+                     NEXT I
+*
+                     COMMAND = CURRENT.COMMAND : COMPLETED.WORD
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+                     PRINT BOTTOM :
+                     PRINT SHELL.PROMPT :
+                     PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+                  END
+*
+               CASE VERB = 'MAN' OR NUMBER.OF.ARGUMENTS > 2
+                  VERB = TRIM(FIELD(COMMAND, ' ', 1))
+*
+                  IF VERB = 'MAN' THEN
+                     HELP.FILE.NAME = TRIM(FIELD(COMMAND, ' ', 2))
+                     IF HELP.FILE.NAME = "BASIC" THEN
+                        FILE.LOOKUP = 'BASIC.HELP'
+                     END ELSE
+                        FILE.LOOKUP = 'SYS.HELP'
+                     END
+                  END ELSE
+                     FILE.LOOKUP = TRIM(FIELD(COMMAND, ' ', 2))
+                  END
+*
+                  LAST.ELEMENT = DCOUNT(COMMAND,' ')
+                  WORD = FIELD(COMMAND, ' ', LAST.ELEMENT)
+                  LENGTH.UP.TO.WORD = COL1()
+                  CURRENT.COMMAND = COMMAND[1, LENGTH.UP.TO.WORD]
+*
+                  IF FILE.LOOKUP = 'BASIC.HELP' AND NOT(BASIC.HELP.OPENED) THEN
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+                  END
+*
+                  IF FILE.LOOKUP = 'SYS.HELP' AND NOT(SYS.HELP.OPENED) THEN
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+                  END
+*
+                  STATEMENT = 'SSELECT ' : FILE.LOOKUP : ' = "': WORD : ']"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+*
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+*
+* DICTIONARY LOOK UP IF WE FOUND NOTHING IN FILE
+*
+                  BEGIN CASE
+                     CASE RECORDS.SELECTED = 0
+                        STATEMENT = 'SSELECT DICT ' : FILE.LOOKUP : ' = "': WORD : ']"'
+                        EXECUTE STATEMENT CAPTURING RESULTS
+*
+                        RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+*
+                        IF RECORDS.SELECTED = 1 THEN
+                           READNEXT ITEM.ID ELSE ITEM.ID = ''
+*
+                           PRINT
+                           PRINT 'DICT: ' : ITEM.ID
+                           PRINT BOTTOM :
+                           PRINT SHELL.PROMPT :
+                           PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
+*
+                           COMMAND = CURRENT.COMMAND : ITEM.ID
+                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           PRINT.SHELL.PROMPT = FALSE
+                           CONTINUE
+*
+                        END ELSE IF RECORDS.SELECTED = 0 THEN
+                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           PRINT.SHELL.PROMPT = FALSE
+                           CONTINUE
+*
+                        END ELSE
+                           PRINT
+*
+                           FIRST.WORD = ''
+                           LAST.WORD = ''
+                           LOOP
+                              READNEXT ITEM.ID ELSE ITEM.ID = ''
+                           UNTIL ITEM.ID = '' DO
+                              PRINT 'DICT: ' : ITEM.ID
+                              IF FIRST.WORD = '' THEN FIRST.WORD = ITEM.ID
+                              LAST.WORD = ITEM.ID
+                           REPEAT
+*
+                           COMPLETED.WORD = ''
+                           FOR I = 1 TO LEN(FIRST.WORD)
+                              IF FIRST.WORD[I,1] = LAST.WORD[I,1] THEN
+                                 COMPLETED.WORD = COMPLETED.WORD : FIRST.WORD[I,1]
+                              END ELSE EXIT
+                           NEXT I
+*
+                           COMMAND = CURRENT.COMMAND : COMPLETED.WORD
+                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+                           PRINT BOTTOM :
+                           PRINT SHELL.PROMPT :
+                           PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+*
+                           PRINT.SHELL.PROMPT = FALSE
+                           CONTINUE
+                        END
+*
+                     CASE TRUE
+                        IF RECORDS.SELECTED = 1 THEN
+                           READNEXT ITEM.ID ELSE ITEM.ID = ''
+*
+                           PRINT
+                           PRINT 'ID: ': ITEM.ID
+                           PRINT BOTTOM :
+                           PRINT SHELL.PROMPT :
+                           PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
+*
+                           IF VERB = 'MAN' OR FILE.LOOKUP = 'KP' THEN
+                              COMMAND = CURRENT.COMMAND : ITEM.ID
+                           END ELSE
+                              COMMAND = CURRENT.COMMAND : '"' : ITEM.ID : '"'
+                           END
+*
+                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           PRINT.SHELL.PROMPT = FALSE
+                           CONTINUE
+*
+                        END ELSE IF RECORDS.SELECTED = 0 THEN
+                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           PRINT.SHELL.PROMPT = FALSE
+                           CONTINUE
+*
+                        END ELSE
+                           PRINT
+                           FIRST.WORD = ''
+                           LAST.WORD = ''
+                           LOOP
+                              READNEXT ITEM.ID ELSE ITEM.ID = ''
+                           UNTIL ITEM.ID = '' DO
+                              PRINT 'ID: ' : ITEM.ID
+                              IF FIRST.WORD = '' THEN FIRST.WORD = ITEM.ID
+                              LAST.WORD = ITEM.ID
+                           REPEAT
+*
+                           COMPLETED.WORD = ''
+                           FOR I = 1 TO LEN(FIRST.WORD)
+                              IF FIRST.WORD[I,1] = LAST.WORD[I,1] THEN
+                                 COMPLETED.WORD = COMPLETED.WORD : FIRST.WORD[I,1]
+                              END ELSE EXIT
+                           NEXT I
+*
+                           COMMAND = CURRENT.COMMAND : COMPLETED.WORD
+                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+                           PRINT BOTTOM :
+                           PRINT SHELL.PROMPT :
+                           PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+                           PRINT.SHELL.PROMPT = FALSE
+                           CONTINUE
+                        END
+*
+                  END CASE
+               CASE TRUE
+                  PRINT.SHELL.PROMPT = FALSE
+                  CONTINUE
+            END CASE
+         END
+*
+         IF COMMAND = '' THEN
+            PRINT
+            CONTINUE
+         END
+*
+* ADD COMMAND TO TRUE HISTORY
+*
+         COMMAND.STACK<TRUE.HISTORY> = INSERT(COMMAND.STACK<TRUE.HISTORY>, 1, 1;COMMAND)
+         IF NSH.HISTORY.OPENED THEN
+            WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
+         END
+*
+         ADD.TO.STACK = TRUE
+*
+* COMMAND STACK MANIPULATION
+*
+         IF COMMAND[1,1] = '.' THEN
+            COMMAND.NUMBER = COMMAND[3, LEN(COMMAND)]
+            PROCEED.STACK.OPERATION = FALSE
+*
+            IF COMMAND[2,1] = 'A' OR COMMAND[2,1] = 'C' OR COMMAND[2,1] = 'U' THEN
+               PROCEED.STACK.OPERATION = TRUE
+*
+* NUMBER AFTER COMMAND STACK MANIPULATOR
+*
+            END ELSE
+               CONVERT ',' TO @AM IN COMMAND.NUMBER
+               COMMAND.NUMBERS = COMMAND.NUMBER
+               COMMAND.NUMBER = COMMAND.NUMBER<1>
+*
+               IF COMMAND.NUMBER = '' THEN
+                  COMMAND.NUMBER = 1
+                  ADD.TO.STACK = FALSE
+                  COMMAND.NUMBERS = COMMAND.NUMBER
+               END
+*
+               IF NUM(COMMAND.NUMBER) THEN
+                  IF COMMAND.NUMBER <= COMMAND.STACK.LENGTH THEN
+                     PROCEED.STACK.OPERATION = TRUE
+                  END ELSE IF COMMAND[2,1] # 'L' THEN
+                     PRINT
+                     PRINT 'NSH: Error - Command stack is: ' : COMMAND.STACK.LENGTH
+                  END
+               END
+            END
+*
+            BEGIN CASE
+               CASE PROCEED.STACK.OPERATION = FALSE
+                  COMMAND = ''
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+               CASE COMMAND[2,1] = 'L'
+                  PRINT
+                  COMMAND = ''
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  MAX = 20
+                  IF COMMAND.STACK.LENGTH <= MAX THEN
+                     MAX = COMMAND.STACK.LENGTH
+                  END
+                  FOR I = MAX TO 1 STEP -1
+                     IF I < 10 THEN
+                        PRINT '0' : I : ' ' : COMMAND.STACK<HISTORY,I>
+                     END ELSE
+                        PRINT I : ' ' : COMMAND.STACK<HISTORY,I>
+                     END
+                  NEXT I
+                  CONTINUE
+*
+               CASE COMMAND[2,1] = 'X'
+                  COMMAND = ''
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  IF PROCEED.STACK.OPERATION THEN
+                     NUMBER.OF.COMMANDS = DCOUNT(COMMAND.NUMBERS,@AM)
+                     FOR I = 1 TO NUMBER.OF.COMMANDS
+                        COMMAND.NUMBER = COMMAND.NUMBERS<I>
+                        IF NUM(COMMAND.NUMBER) AND COMMAND.NUMBER <= COMMAND.STACK.LENGTH THEN
+                           COMMAND<-1> = COMMAND.STACK<HISTORY,COMMAND.NUMBER>
+                        END ELSE
+                           EXIT
+                        END
+                     NEXT I
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  END
+*
+               CASE COMMAND[2,1] = 'D'
+                  COMMAND = ''
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  IF PROCEED.STACK.OPERATION THEN
+                     PRINT
+                     COMMAND.STACK<HISTORY> = DELETE(COMMAND.STACK,1,COMMAND.NUMBER)
+                     IF NSH.HISTORY.OPENED THEN
+                        WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
+                     END
+                     PRINT 'NSH: Deleted #' : COMMAND.NUMBER : ' from stack.' :
+                  END
+*
+               CASE COMMAND[2,1] = 'R'
+                  COMMAND = ''
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  IF PROCEED.STACK.OPERATION THEN
+                     COMMAND = COMMAND.STACK<HISTORY,COMMAND.NUMBER>
+                     COMMAND.STACK<HISTORY> = DELETE(COMMAND.STACK,1,COMMAND.NUMBER)
+                     COMMAND.STACK<HISTORY> = INSERT(COMMAND.STACK<1>, 1, 1;COMMAND)
+                     PRINT
+                     IF COMMAND.NUMBER < 10 THEN
+                        PRINT '0' : COMMAND.NUMBER : ' ' : COMMAND :
+                     END ELSE
+                        PRINT COMMAND.NUMBER : ' ' : COMMAND :
+                     END
+                     IF NSH.HISTORY.OPENED THEN
+                        WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
+                     END
+                     COMMAND = ''
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  END
+*
+               CASE COMMAND[2,1] = 'A'
+                  IF PROCEED.STACK.OPERATION THEN
+                     APPEND = COMMAND[3, LEN(COMMAND)]
+                     COMMAND.STACK<HISTORY,1> = COMMAND.STACK<HISTORY,1> : APPEND
+                     PRINT
+                     IF COMMAND.NUMBER < 10 THEN
+                        PRINT '0' : COMMAND.NUMBER : ' ' : COMMAND.STACK<HISTORY,1> :
+                     END ELSE
+                        PRINT COMMAND.NUMBER : ' ' : COMMAND.STACK<HISTORY,1> :
+                     END
+                     COMMAND = ''
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  END
+*
+               CASE COMMAND[2,1] = 'U'
+                  IF PROCEED.STACK.OPERATION THEN
+                     COMMAND.STACK<HISTORY,1> = UPCASE(COMMAND.STACK<HISTORY,1>)
+                     PRINT
+                     IF COMMAND.NUMBER < 10 THEN
+                        PRINT '0' : COMMAND.NUMBER : ' ' : COMMAND.STACK<HISTORY,1> :
+                     END ELSE
+                        PRINT COMMAND.NUMBER : ' ' : COMMAND.STACK<HISTORY,1> :
+                     END
+
+                     COMMAND = ''
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  END
+*
+               CASE COMMAND[2,1] = 'C'
+                  IF PROCEED.STACK.OPERATION THEN
+                     DELIMITER = '/'
+                     NUMBER.OF.DELIMITERS = COUNT(COMMAND, DELIMITER)
+*
+                     PROCEED = TRUE
+*
+* CHECK MULTIPLE DELIMITER TYPES
+*
+                     IF NUMBER.OF.DELIMITERS < 2 OR NUMBER.OF.DELIMITERS > 3 THEN
+                        DELIMITER = '!'
+                        NUMBER.OF.DELIMITERS = COUNT(COMMAND, DELIMITER)
+                        IF NUMBER.OF.DELIMITERS < 2 OR NUMBER.OF.DELIMITERS > 3 THEN
+                           PRINT
+                           PRINT 'NSH: There needs to be exactly 2 delimiters.' :
+                           PROCEED = FALSE
+                        END
+                     END
+*
+                     IF PROCEED THEN
+                        CHANGE.STACK.POINTER = 1
+*
+                        NUM1 = FIELD(COMMAND,DELIMITER,1)
+*
+                        IF LEN(NUM1) = 2 THEN
+                           CHANGE.STACK.POINTER = 1
+                        END ELSE
+                           NUM1 = NUM1[3,99]
+                           IF NUM(NUM1) THEN
+                              CHANGE.STACK.POINTER = NUM1
+                           END ELSE
+                              CHANGE.STACK.POINTER = 1
+                           END
+                        END
+*
+                        IF CHANGE.STACK.POINTER > COMMAND.STACK.LENGTH THEN
+                           PRINT
+                           PRINT 'NSH: Command does not exist.' :
+                           PROCEED = FALSE
+                        END
+*
+                        IF PROCEED THEN
+                           STRING1 = FIELD(COMMAND,DELIMITER,2)
+                           STRING2 = FIELD(COMMAND,DELIMITER,3)
+*
+                           IF NUMBER.OF.DELIMITERS = 2 THEN
+                              HOW.MANY = 1
+                           END ELSE
+                              HOW.MANY = FIELD(COMMAND,'/',4)
+                              IF HOW.MANY = 'G' THEN
+                                 HOW.MANY = -1
+                              END
+                              IF NOT(NUM(HOW.MANY)) THEN
+                                 PRINT
+                                 PRINT 'NSH: Number of replaces should be a number.' :
+                                 PROCEED = FALSE
+                              END
+                           END
+*
+                           IF PROCEED THEN
+                              COMMAND = EREPLACE(COMMAND.STACK<HISTORY,CHANGE.STACK.POINTER>,STRING1,STRING2,HOW.MANY)
+                              CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+                              PRINT
+                              IF CHANGE.STACK.POINTER < 10 THEN
+                                 PRINT '0' : CHANGE.STACK.POINTER : ' ' : COMMAND :
+                              END ELSE
+                                 PRINT CHANGE.STACK.POINTER : ' ' : COMMAND :
+                              END
+*
+                              COMMAND.STACK<HISTORY,CHANGE.STACK.POINTER> = COMMAND
+                           END
+                        END
+                     END
+                     COMMAND = ''
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  END
+*
+               CASE TRUE
+                  PRINT
+                  PRINT 'NSH: Invalid command stack manipulation.' :
+                  COMMAND = ''
+                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+            END CASE
+         END
+*
+* EXECUTE SHELL COMMANDS
+*
+         IF COMMAND = '!' THEN
+            PRINT
+            EXECUTE 'SH'
+            COMMAND = ''
+            CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+         END ELSE IF COMMAND[1,1] = '!' THEN
+            COMMAND = COMMAND[2,LEN(COMMAND)]
+            EXECUTE 'SH -c ' : '"' : COMMAND : '"'
+            COMMAND = ''
+            CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+         END
+*
+         PRINT
+*
+         VERB = FIELD(COMMAND,' ',1)
+*
+* EXECUTE NSH VERBS
+*
+         BEGIN CASE
+            CASE COMMAND = 'Q'
+               COMMAND = ''
+               CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+               EXIT
+*
+            CASE COMMAND = 'CLEAR'
+               COMMAND = 'CLR'
+               CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+            CASE COMMAND[1,3] = 'LS '
+               COMMAND = CHANGE(COMMAND, 'LS ', 'LIST ', 1)
+               CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+            CASE COMMAND = 'HISTORY'
+               FOR I = DCOUNT(COMMAND.STACK<TRUE.HISTORY>,@VM) TO 1 STEP -1
+                  IF I < 10 THEN
+                     PRINT '0' : I : ' ' : COMMAND.STACK<TRUE.HISTORY,I>
+                  END ELSE
+                     PRINT I : ' ' : COMMAND.STACK<TRUE.HISTORY,I>
+                  END
+               NEXT I
+*
+               COMMAND = ''
+               CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+               CONTINUE
+*
+* HELP MANIPULATION
+*
+            CASE VERB = 'MAN'
+               COMMAND.STACK<HISTORY> = INSERT(COMMAND.STACK<HISTORY>, 1, 1;COMMAND)
+               IF NSH.HISTORY.OPENED THEN
+                  WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
+               END
+*
+               ACTION = FIELD(COMMAND,' ',2)
+               BASIC.VERB = FIELD(COMMAND,' ',3)
+*
+* Check If MAN is for BASIC or SYSTEM
+*
+               BEGIN CASE
+                  CASE ACTION = '' AND NOT(SYS.HELP.OPENED)
+                     PRINT "NSH: SYS.HELP not available"
+                     CONTINUE
+*
+                  CASE ACTION = 'BASIC' AND NOT(BASIC.HELP.OPENED)
+                     PRINT "NSH: BASIC.HELP not available"
+                     CONTINUE
+*
+                  CASE ACTION = ''
+                     EXECUTE 'SORT SYS.HELP @ID ID-SUPP'
+                     COMMAND = ''
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CONTINUE
+*
+                  CASE ACTION = 'BASIC' AND BASIC.VERB # ''
+                     READV ACTION.TYPE FROM BASIC.HELP.FILE,BASIC.VERB,2 ELSE ACTION.TYPE = ''
+*
+                     IF ACTION.TYPE = '' THEN
+                        PRINT 'NSH: BASIC keyword not in manual: ' : BASIC.VERB
+                        COMMAND = ''
+                        CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                        CONTINUE
+                     END ELSE
+                        PRINT 'NSH: BASIC Help: ' : BASIC.VERB
+                        EXECUTE 'LIST BASIC.HELP ' : '"' : BASIC.VERB : '"'
+                        COMMAND = ''
+                        CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                        CONTINUE
+                     END
+*
+                  CASE TRUE
+                     IF NOT(SYS.HELP.OPENED) THEN
+                        PRINT "NSH: SYS.HELP not available"
+                        CONTINUE
+                     END
+*
+                     READV ACTION.TYPE FROM SYS.HELP.FILE,ACTION,2 ELSE ACTION.TYPE = ''
+*
+                     IF ACTION.TYPE = '' THEN
+                        PRINT 'NSH: System keyword not in manual: ' : ACTION
+                        COMMAND = ''
+                        CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                        CONTINUE
+                     END ELSE
+                        PRINT 'NSH: Help: ' : ACTION
+                        EXECUTE 'CT SYS.HELP ' : ACTION : ' (S)'
+                        COMMAND = ''
+                        CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                        CONTINUE
+                     END
+*
+               END CASE
+*
+         END CASE
+*
+         IF ADD.TO.STACK AND COMMAND # '' THEN
+            NUMBER.OF.COMMANDS = DCOUNT(COMMAND,@AM)
+            FOR I = 1 TO NUMBER.OF.COMMANDS
+               COMMAND.STACK<HISTORY> = INSERT(COMMAND.STACK<HISTORY>, 1, 1;COMMAND<I>)
+            NEXT I
+            IF NSH.HISTORY.OPENED THEN
+               WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
+            END
+         END
+*
+         NUMBER.OF.COMMANDS = DCOUNT(COMMAND,@AM)
+         FOR I = 1 TO NUMBER.OF.COMMANDS
+            SERIES<-1> = COMMAND<I>
+         NEXT I
+*
+* EXECUTE COMMAND
+*
+         IF VERB = 'SEARCH' THEN
+            SERIES<-1> = 'SAVE-LIST ' : @ACCOUNT : '.' : @USERNO : '.LIST'
+            EXECUTE SERIES CAPTURING RESULTS
+*
+            PRINT
+            MESSAGE = RESULTS<DCOUNT(RESULTS, @AM)-1>
+            PRINT MESSAGE
+            IF INDEX(MESSAGE,'0 record',1) = 0 THEN
+               SERIES = 'GET-LIST ' : @ACCOUNT : '.' : @USERNO : '.LIST'
+            END ELSE
+               SERIES = ''
+            END
+*
+         END ELSE IF VERB = 'SAVE-LIST' THEN
+            EXECUTE SERIES CAPTURING RESULTS
+            PRINT
+            PRINT RESULTS<4>
+*
+         END ELSE
+            EXECUTE SERIES
+         END
+*
+         LOCATE(VERB, SERIES.VERBS, 1;ANY.POS) ELSE
+            SERIES = ''
+         END
+*
+         COMMAND = ''
+         CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+      REPEAT
+*
+      IF NSH.HISTORY.OPENED THEN
+         WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
+      END
+      PRINT 'NSH: BYE'
+*
+* END OF PROGRAM.
+*
+   END
