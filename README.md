@@ -1,7 +1,8 @@
 # NovasShell
 A Fancier Shell for Universe
 
-**Installation**
+## Installation
+
 Pull the file and then simply compile it.
 
 In Linux:
@@ -21,10 +22,10 @@ If everything went well, you should now see a brand new prompt!
 user:13@ACCOUNT>
 ```
 
-**Requirements**
+## Requirements
 This application currently assumes that the system is UniVerse on Linux. 
 
-**Features**
+## Feature
 
 - Custom Prompt: Prompt displays username, port and account
 - Tab for Suggestions: Allows for commands, files and items inside files to be suggested when you hit tab 
@@ -41,5 +42,5 @@ This application currently assumes that the system is UniVerse on Linux.
 - Linux access: Shortcut to get to Linux and added ability to execute shell commands quickly (Same thing as doing sh in tcl)
   - !curl google.ca 
 
-**Hacking**
+## Hacking
 Feel free to open up the file and make any changes you like, please submit them if you think others might get something out of it as well!
