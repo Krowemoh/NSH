@@ -1,4 +1,4 @@
-# NovasShell
+# NovaShell
 A Fancier Shell for Universe
 
 ## Installation
