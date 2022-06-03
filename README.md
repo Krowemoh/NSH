@@ -25,7 +25,7 @@ user:13@ACCOUNT>
 ## Requirements
 This application currently assumes that the system is UniVerse on Linux. 
 
-## Feature
+## Features
 
 - Custom Prompt: Prompt displays username, port and account
 - Tab for Suggestions: Allows for commands, files and items inside files to be suggested when you hit tab 
