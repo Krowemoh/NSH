@@ -3,11 +3,18 @@ A Fancier Shell for Universe
 
 ## Installation
 
-Pull the file and then simply compile it.
+Pull the file and then simply compile it. There are compile time directives you can use to compile NovaShell for UniVerse or D3. The default is UniVerse. 
 
-In Linux:
+If you are using D3 10.2 or earlier, you'll need to use the compile time directives and also a cleaner program as ifdefs are not respected.
+
+
+The following instructions assume you are installing NovaShell on UniVerse on Linux. Otherwise, you'll need to edit the directives before you copy and compile NovaShell. 
+
+At the command line:
 ```
-$ wget https://raw.githubusercontent.com/Krowemoh/NovasShell/main/NSH -O /path/to/BP/NSH
+$ git clone git@github.com:Krowemoh/NovaShell.git
+$ cd NovaShell
+$ cp NSH /path/to/BP/NSH
 ```
 
 In Universe
@@ -22,8 +29,50 @@ If everything went well, you should now see a brand new prompt!
 user:13@ACCOUNT>
 ```
 
-## Requirements
-This application currently assumes that the system is UniVerse on Linux. 
+### Compiling NovaShell
+
+Inside the NSH file is compile time directives.
+
+These directives look like this:
+```
+*
+* COMPILER DIRECTIVES
+*
+$DEFINE DATABASE.UV
+$DEFINE PLATFORM.LINUX
+*
+```
+
+You will need to set a database type and a platform before copying the file to a BP and running `BASIC BP NSH`.
+
+The possible options for the database type are:
+
+```
+$DEFINE DATABASE.UV
+$DEFINE DATABASE.D3
+```
+
+The possible platform options are:
+```
+$DEFINE PLATFORM.LINUX
+$DEFINE PLATFORM.WINDOWS
+```
+
+### D3 10.2 Specific Installation
+
+In D3 10.2, you'll need to strip out the ifdefs that unneeded and enable the code blocks manually. There is a python3 script included here you can use to do this.
+
+Once the directives are set in NSH, you can then do the following:
+
+```
+$ git clone git@github.com:Krowemoh/NovaShell.git
+$ cd NovaShell
+# Edit NSH with the correct directives
+# Rename NSH to NSH.ORIGINAL
+$ python3 undef NSH.ORIGINAL > NSH
+```
+
+Now you should have a compile ready version of NSH that you can copy to a BP folder and then compile it through D3.
 
 ## Features
 

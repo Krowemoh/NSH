@@ -23,8 +23,18 @@
 *                         Allow multiple .X Command Numbers            *
 * 31 MAY 2022  N/A   NT   Move NSH-HISTORY-FILE to /tmp/               *
 *                         Remove Account Specific History              *
+* 10 JUN 2022  N/A   NT   Add Support for D3 and Windows               *
 *                                                                      *
 ************************************************************************
+*
+* VERSION
+*
+    VERSION = '0.4.2'
+*
+* COMPILER DIRECTIVES
+*
+$DEFINE DATABASE.UV
+$DEFINE PLATFORM.LINUX
 *
 * CONSTANTS
 *
@@ -41,7 +51,6 @@
       NEW.ACC.OPENED = TRUE
       OPEN '','NEWACC' TO NEWACC.FILE ELSE
          PRINT 'NSH: Unable to open file: NEWACC - Press RETURN'
-         INPUT ANYTHING
          NEW.ACC.OPENED = FALSE
       END
 *
@@ -50,7 +59,6 @@
       SYS.HELP.OPENED = TRUE
       OPEN '','SYS.HELP' TO SYS.HELP.FILE ELSE
          PRINT 'NSH: Unable to open file: SYS.HELP - Press RETURN'
-         INPUT ANYTHING
          SYS.HELP.OPENED = FALSE
       END
 *
@@ -59,7 +67,6 @@
       BASIC.HELP.OPENED = TRUE
       OPEN '','BASIC.HELP' TO BASIC.HELP.FILE ELSE
          PRINT 'NSH: Unable to open file: BASIC.HELP - Press RETURN'
-         INPUT ANYTHING
          BASIC.HELP.OPENED = FALSE
       END
 *
@@ -67,22 +74,58 @@
 *
       NSH.HISTORY.OPENED = TRUE
       OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
-         OPEN '','VOC' TO VOC.FILE ELSE
-            PRINT 'Unable to open file: VOC - Press RETURN':
-            INPUT ANYTHING
-            STOP
-         END
-         NSH.ENTRY = ''
-         NSH.ENTRY<1> = 'F'
-         NSH.ENTRY<2> = '/tmp/.nsh/'
-         NSH.ENTRY<3> = '/tmp/.nsh/'
-         WRITE NSH.ENTRY ON VOC.FILE,'NSH-HISTORY-FILE'
+         $IFDEF DATABASE.UV
+            VOC = 'VOC'
+         $ENDIF
+         $IFDEF DATABASE.D3
+            VOC = 'MD'
+         $ENDIF
+         OPEN '',VOC TO VOC.FILE THEN
+            NSH.ENTRY = ''
+            $IFDEF PLATFORM.LINUX
+                $IFDEF DATABASE.UV
+                    NSH.ENTRY<1> = 'F'
+                    NSH.ENTRY<2> = '/tmp/.nsh/'
+                    NSH.ENTRY<3> = '/tmp/.nsh/'
+                $ENDIF
+                $IFDEF DATABASE.D3
+                    NSH.ENTRY<1> = 'Q'
+                    NSH.ENTRY<3> = 'UNIX:/tmp/.nsh/'
+                $ENDIF
+            $ENDIF
+            $IFDEF PLATFORM.WINDOWS
+                $IFDEF DATABASE.UV
+                    NSH.ENTRY<1> = 'F'
+                    NSH.ENTRY<2> = 'DOS:C:\.nsh\'
+                    NSH.ENTRY<3> = 'DOS:C:\.nsh\'
+                $ENDIF
+                $IFDEF DATABASE.D3
+                    NSH.ENTRY<1> = 'Q'
+                    NSH.ENTRY<3> = 'DOS:C:\.nsh\'
+                $ENDIF
+            $ENDIF
 *
-         OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
-            EXECUTE 'SH -c "mkdir /tmp/.nsh/"'
+            WRITE NSH.ENTRY ON VOC.FILE,'NSH-HISTORY-FILE'
+*
             OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
-               NSH.HISTORY.OPENED = FALSE
+                $IFDEF PLATFORM.LINUX
+                    $IFDEF DATABASE.UV
+                        EXECUTE 'SH -c "mkdir /tmp/.nsh/"'
+                    $ENDIF
+                    $IFDEF DATABASE.UV
+                        EXECUTE '!mkdir /tmp/.nsh/'
+                    $ENDIF
+                $ENDIF
+                $IFDEF PLATFORM.WINDOWS
+                    EXECUTE '! mkdir C:\.nsh'
+                $ENDIF
+                OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
+                    NSH.HISTORY.OPENED = FALSE
+                END
             END
+         END ELSE
+            PRINT 'NSH: Unable to open file: VOC - Press RETURN'
+            NSH.HISTORY.OPENED = FALSE
          END
       END
 *
@@ -116,52 +159,85 @@
       EQU TERMINAL.LEFT.ATTRIBUTE TO 4
       EQU TERMINAL.RIGHT.ATTRIBUTE TO 5
 *
-      TERMINAL.CODES = TERMINFO(0)
-      TERMINAL.TYPE = FIELD(TERMINAL.CODES<1>,'|',1)
+      $IFDEF DATABASE.UV
+        TERMINAL.CODES = TERMINFO(0)
+        TERMINAL.TYPE = FIELD(TERMINAL.CODES<1>,'|',1)
+      $ENDIF
+      $IFDEF DATABASE.D3
+        TERMINAL.CODES = OCONV("", "u0004")
+        TERMINAL.TYPE = TERMINAL.CODES<1>
+      $ENDIF
 *
-      IF TERMINAL.TYPE = 'vp' THEN
-         PRINT 'NSH: Re-mapped susp to ^B (Ctrl B)'
-         EXECUTE 'SH -c "stty susp ^B"'
-         TERMINAL.TYPE = 'viewpoint'
-      END
+      $IFDEF PLATFORM.LINUX
+        IF TERMINAL.TYPE = 'vp' THEN
+            PRINT 'NSH: Re-mapped susp to ^B (Ctrl B)'
+            $IFDEF DATABASE.UV
+                EXECUTE 'SH -c "stty susp ^B"'
+            $ENDIF
+            $IFDEF DATABASE.D3
+                EXECUTE '!stty susp ^B'
+            $ENDIF
+            TERMINAL.TYPE = 'viewpoint'
+        END
+      $ENDIF
 *
       TERMINAL = ''
       TERMINAL<TERMINAL.TYPE.ATTRIBUTE,1> = TERMINAL.TYPE
 *
-      EXECUTE 'SH -c "infocmp "' : TERMINAL.TYPE CAPTURING RESULTS
-      RESULTS = CHANGE(RESULTS, ',', @VM)
-      RESULTS = CHANGE(RESULTS, '=', @SVM)
+      $IFDEF PLATFORM.LINUX
+        $IFDEF DATABASE.UV
+            EXECUTE 'SH -c "infocmp "' : TERMINAL.TYPE CAPTURING RESULTS
+        $ENDIF
+        $IFDEF DATABASE.D3
+            EXECUTE '!infocmp ' : TERMINAL.TYPE CAPTURING RESULTS
+        $ENDIF
 *
-      UP.ESCAPE.CODE = 'kcuu1'
-      DOWN.ESCAPE.CODE = 'kcud1'
-      LEFT.ESCAPE.CODE = 'kcub1'
-      RIGHT.ESCAPE.CODE = 'kcuf1'
+        ARROW.CODES = ''
+        ARROW.CODES<1,-1> = 'kcuu1='
+        ARROW.CODES<1,-1> = 'kcud1='
+        ARROW.CODES<1,-1> = 'kcub1='
+        ARROW.CODES<1,-1> = 'kcuf1='
 *
-      FINDSTR UP.ESCAPE.CODE IN RESULTS SETTING AM.POS, VM.POS THEN
-         UP.ESCAPE.CODE = CHANGE(TRIM(RESULTS<AM.POS, VM.POS, 2>),'\E','')
-         TERMINAL<TERMINAL.UP.ATTRIBUTE,1> = UP.ESCAPE.CODE
-      END
-*
-      FINDSTR DOWN.ESCAPE.CODE IN RESULTS SETTING AM.POS, VM.POS THEN
-         DOWN.ESCAPE.CODE = CHANGE(TRIM(RESULTS<AM.POS, VM.POS, 2>),'\E','')
-         TERMINAL<TERMINAL.DOWN.ATTRIBUTE,1> = DOWN.ESCAPE.CODE
-      END
-*
-      FINDSTR LEFT.ESCAPE.CODE IN RESULTS SETTING AM.POS, VM.POS THEN
-         LEFT.ESCAPE.CODE = CHANGE(TRIM(RESULTS<AM.POS, VM.POS, 2>),'\E','')
-         TERMINAL<TERMINAL.LEFT.ATTRIBUTE,1> = LEFT.ESCAPE.CODE
-      END
-*
-      FINDSTR RIGHT.ESCAPE.CODE IN RESULTS SETTING AM.POS, VM.POS THEN
-         RIGHT.ESCAPE.CODE = CHANGE(TRIM(RESULTS<AM.POS, VM.POS, 2>),'\E','')
-         TERMINAL<TERMINAL.RIGHT.ATTRIBUTE,1> = RIGHT.ESCAPE.CODE
-      END
+        ARROW.CTR = 0
+        LOOP
+            ARROW.CTR = ARROW.CTR + 1
+            ARROW.CODE = ARROW.CODES<1,ARROW.CTR>
+        UNTIL ARROW.CODE = '' DO
+            STR = ''
+            START.POS = INDEX(RESULTS, ARROW.CODE, 1)
+            IF START.POS # 0 THEN
+                STR = RESULTS[START.POS,999999]
+                START.POS = LEN(ARROW.CODE) + 1
+                END.POS = INDEX(STR, ',', 1) - START.POS
+                STR = STR[START.POS,END.POS]
+                IF INDEX(STR,'^',1) # 0 THEN
+                    STR = STR[2,99999]
+                END ELSE IF INDEX(STR,'\E',1) THEN
+                    STR = STR[3,99999]
+                END ELSE
+                    STR = ''
+                END
+            END
+            TERMINAL<ARROW.CTR,1> = STR
+        REPEAT
+      $ENDIF
 *
       TERMINAL.POS = 1
 *
 * SHELL INITIALIZATION
 *
-      USER.NAME = @ACCOUNT
+      $IFDEF DATABASE.UV
+        USER.NAME = @ACCOUNT
+        PORT.NUMBER = @USERNO
+        ACCOUNT.NAME = @WHO
+      $ENDIF
+*
+      $IFDEF DATABASE.D3
+        USER.NAME = @USER
+        PORT.NUMBER = @USERNO
+        ACCOUNT.NAME = @ACCOUNT
+      $ENDIF
+*
       COMMAND.HISTORY.FILE.NAME = USER.NAME : '.nsh_history'
 *
       IF NSH.HISTORY.OPENED THEN
@@ -179,7 +255,9 @@
       SERIES.VERBS<1,-1> = 'SSELECT'
       SERIES.VERBS<1,-1> = 'GET-LIST'
       SERIES.VERBS<1,-1> = 'GET.LIST'
-      SERIES.VERBS<1,-1> = 'SEARCH'
+      $IFDEF DATABASE.UV
+        SERIES.VERBS<1,-1> = 'SEARCH'
+      $ENDIF
 *
       SERIES = ''
 *
@@ -192,14 +270,14 @@
 *
       LINUX.COMMAND.MODE = FALSE
 *
-      PRINT 'Welcome to NovaShell 0.3!'
-      CRT @(-37,1) : 'NSH: Your term is set to ' : TERMINAL.TYPE : '.'
+      PRINT 'Welcome to NovaShell ' : VERSION : '!'
+      PRINT 'NSH: Your term is set to ' : TERMINAL.TYPE : '.'
 *
 * PRIMARY EXECUTATION LOOP
 *
       LOOP WHILE TRUE DO
          IF PRINT.SHELL.PROMPT THEN
-            SHELL.PREFIX = @ACCOUNT : ':' : @USERNO : '@' : @WHO
+            SHELL.PREFIX = USER.NAME : ':' : PORT.NUMBER : '@' : ACCOUNT.NAME
             SHELL.DEFAULT.PROMPT = SHELL.PREFIX : '> '
             SERIES.PROMPT = SHELL.PREFIX : '>> '
 *
@@ -224,7 +302,12 @@
 *
 * CHARACTER ENTRY
 *
-            CHR = KEYIN()
+            $IFDEF DATABASE.UV
+                CHR = KEYIN()
+            $ENDIF
+            $IFDEF DATABASE.D3
+                INPUT CHR, 0
+            $ENDIF
 *
 * PROCESS CHARACTER
 *
@@ -245,7 +328,9 @@
 *
                CASE ASCII.CODE = SEQ(KEY.EXCLAIMATION.MARK)
                   LINUX.COMMAND.MODE = TRUE
-                  PRINT CHR :
+                  $IFDEF DATABASE.UV
+                    PRINT CHR :
+                  $ENDIF
                   COMMAND = COMMAND : CHR
                   CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
                   CONTINUE
@@ -294,10 +379,20 @@
                            PRINT BOTTOM :
                            PRINT SHELL.PROMPT :
                            PRINT COMMAND : CLEAR.REST.OF.SCREEN :
-                           PRINT @(-70, CURSOR.POSITION) :
+                           $IFDEF DATABASE.UV
+                                PRINT @(-70, CURSOR.POSITION) :
+                           $ENDIF
+                           $IFDEF DATABASE.D3
+                                FOR X = 1 TO LEN(COMMAND) - CURSOR.IN.COMMAND + 1
+                                    PRINT @(-9) :
+                                NEXT X
+                           $ENDIF
+*
                         END ELSE
                            COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
-                           PRINT @(-22) :
+                           $IFDEF DATABASE.UV
+                                PRINT @(-22) :
+                           $ENDIF
                         END
                      END
                   END
@@ -309,15 +404,30 @@
                   EXIT
 *
                CASE ASCII.CODE = SEQ(KEY.ESCAPE)
-                  CHR = KEYIN()
+                  $IFDEF DATABASE.UV
+                      CHR = KEYIN()
+                  $ENDIF
+                  $IFDEF DATABASE.D3
+                      INPUT CHR, 0
+                  $ENDIF
                   ESCAPE.SEQUENCE = CHR
 *
                   IF CHR = 'O' THEN
-                     CHR = KEYIN()
+                    $IFDEF DATABASE.UV
+                        CHR = KEYIN()
+                    $ENDIF
+                    $IFDEF DATABASE.D3
+                        INPUT CHR, 0
+                    $ENDIF
                      ESCAPE.SEQUENCE = ESCAPE.SEQUENCE : CHR
                   END ELSE IF CHR = '[' THEN
                      LOOP
-                        CHR = KEYIN()
+                        $IFDEF DATABASE.UV
+                            CHR = KEYIN()
+                        $ENDIF
+                        $IFDEF DATABASE.D3
+                            INPUT CHR, 0
+                        $ENDIF
                         ESCAPE.SEQUENCE = ESCAPE.SEQUENCE : CHR
                      UNTIL NOT(NUM(CHR)) DO REPEAT
                   END
@@ -328,16 +438,22 @@
                   IF NOT(LINUX.COMMAND.MODE) THEN
                      CHR = OCONV(CHR,'MCU')
                   END
-                  PRINT CHR :
+                  $IFDEF DATABASE.UV
+                    PRINT CHR :
+                  $ENDIF
 *
                CASE ASCII.CODE >= SEQ('A') AND ASCII.CODE <= SEQ('Z')
                   IF NOT(LINUX.COMMAND.MODE) THEN
                      CHR = OCONV(CHR,'MCL')
                   END
-                  PRINT CHR :
+                  $IFDEF DATABASE.UV
+                    PRINT CHR :
+                  $ENDIF
 *
                CASE TRUE
-                  PRINT CHR :
+                  $IFDEF DATABASE.UV
+                    PRINT CHR :
+                  $ENDIF
             END CASE
 *
             IF NOT(AT.BEGINNING) THEN
@@ -361,7 +477,7 @@
 *
          IF ESCAPE.SEQUENCE # '' THEN
             BEGIN CASE
-               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.UP.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 26 OR ESCAPE.SEQUENCE = 'OA'
+               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.UP.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 26 OR ESCAPE.SEQUENCE = 'OA' OR (TERMINAL.TYPE = 'wy50' AND ESCAPE.SEQUENCE = 11)
                   IF TRUE.HISTORY.STACK.POINTER < TRUE.HISTORY.LENGTH THEN
                      TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER + 1
                      IF COMMAND # '' AND USER.INPUT = TRUE THEN
@@ -371,7 +487,7 @@
                         PREVIOUS.COMMAND = COMMAND
                         LOOP
                            COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER>
-                        UNTIL (TRUE.HISTORY.STACK.POINTER >= TRUE.HISTORY.LENGTH OR INDEX(COMMAND,SEARCH.COMMAND,1)) # 0 AND PREVIOUS.COMMAND # COMMAND DO
+                        UNTIL (TRUE.HISTORY.STACK.POINTER >= TRUE.HISTORY.LENGTH OR INDEX(COMMAND,SEARCH.COMMAND,1) # 0) AND PREVIOUS.COMMAND # COMMAND DO
                            TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER + 1
                         REPEAT
                      END
@@ -390,7 +506,7 @@
 *
                   CONTINUE
 *
-               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.DOWN.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 10 OR ESCAPE.SEQUENCE = 'OB'
+               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.DOWN.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 10 OR ESCAPE.SEQUENCE = 'OB' OR (TERMINAL.TYPE = 'wy50' AND ESCAPE.SEQUENCE = 10)
                   IF TRUE.HISTORY.STACK.POINTER > 1 THEN
                      TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER - 1
                      IF COMMAND # '' AND USER.INPUT = TRUE THEN
@@ -400,7 +516,7 @@
                         PREVIOUS.COMMAND = COMMAND
                         LOOP
                            COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER>
-                        UNTIL (TRUE.HISTORY.STACK.POINTER <= 0 OR INDEX(COMMAND,SEARCH.COMMAND,1)) AND PREVIOUS.COMMAND # COMMAND # 0 DO
+                        UNTIL (TRUE.HISTORY.STACK.POINTER <= 0 OR INDEX(COMMAND,SEARCH.COMMAND,1) # 0) AND PREVIOUS.COMMAND # COMMAND DO
                            TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER - 1
                         REPEAT
                      END
@@ -426,21 +542,28 @@
                   IF CURSOR.POSITION > LEN(SHELL.PROMPT) THEN
                      CURSOR.POSITION = CURSOR.POSITION - 1
                      PRINT @(CURSOR.POSITION, 66) :
-                     PRINT @(-20) :
+                     $IFDEF DATABASE.UV
+                        PRINT @(-20) :
+                     $ENDIF
                   END
 *
                   PRINT.SHELL.PROMPT = FALSE
                   CONTINUE
 *
-               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.RIGHT.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 6 OR ESCAPE.SEQUENCE = 'OC'
+               CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.RIGHT.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 6 OR ESCAPE.SEQUENCE = 'OC' OR (TERMINAL.TYPE = 'wy50' AND ESCAPE.SEQUENCE = 12)
                   IF CURSOR.POSITION < (LEN(SHELL.PROMPT) + LEN(COMMAND)) THEN
                      CURSOR.POSITION = CURSOR.POSITION + 1
                      PRINT @(CURSOR.POSITION, 66) :
-                     PRINT @(-20) :
+                     $IFDEF DATABASE.UV
+                        PRINT @(-20) :
+                     $ENDIF
                   END
 *
                   PRINT.SHELL.PROMPT = FALSE
                   CONTINUE
+*
+               CASE TERMINAL.TYPE = 'wy50' AND (ESCAPE.SEQUENCE = 'i' OR ESCAPE.SEQUENCE = 'I')
+                   TAB.PRESSED = TRUE
 *
                CASE TRUE
                   PRINT
@@ -519,7 +642,13 @@
                   LENGTH.UP.TO.WORD = COL1()
                   CURRENT.COMMAND = COMMAND[1, LENGTH.UP.TO.WORD]
 *
-                  STATEMENT = 'SSELECT MD = "': WORD : ']" AND WITH F1 = "F]""Q]"'
+                  $IFDEF DATABASE.UV
+                    STATEMENT = 'SSELECT MD = "': WORD : ']" WITH F1 = "F]""Q]"'
+                  $ENDIF
+                  $IFDEF DATABASE.D3
+                    STATEMENT = 'SSELECT MD = "': WORD : ']" WITH A1 = "D]""Q]"'
+                  $ENDIF
+*
                   EXECUTE STATEMENT CAPTURING RESULTS
 *
                   RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
@@ -858,7 +987,7 @@
 *
                CASE COMMAND[2,1] = 'U'
                   IF PROCEED.STACK.OPERATION THEN
-                     COMMAND.STACK<HISTORY,1> = UPCASE(COMMAND.STACK<HISTORY,1>)
+                     COMMAND.STACK<HISTORY,1> = OCONV(COMMAND.STACK<HISTORY,1>, 'MCU')
                      PRINT
                      IF COMMAND.NUMBER < 10 THEN
                         PRINT '0' : COMMAND.NUMBER : ' ' : COMMAND.STACK<HISTORY,1> :
@@ -960,14 +1089,28 @@
 * EXECUTE SHELL COMMANDS
 *
          IF COMMAND = '!' THEN
-            PRINT
-            EXECUTE 'SH'
-            COMMAND = ''
-            CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+            $IFDEF PLATFORM.LINUX
+                $IFDEF DATABASE.UV
+                    PRINT
+                    EXECUTE 'SH'
+                    COMMAND = ''
+                    CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                $ENDIF
+            $ENDIF
 *
          END ELSE IF COMMAND[1,1] = '!' THEN
             COMMAND = COMMAND[2,LEN(COMMAND)]
-            EXECUTE 'SH -c ' : '"' : COMMAND : '"'
+            $IFDEF PLATFORM.LINUX
+                $IFDEF DATABASE.UV
+                    EXECUTE 'SH -c ' : '"' : COMMAND : '"'
+                $ENDIF
+                $IFDEF DATABASE.D3
+                    EXECUTE '!' : COMMAND
+                $ENDIF
+            $ENDIF
+            $IFDEF PLATFORM.WINDOWS
+                EXECUTE '! ' : '"' : COMMAND : '"'
+            $ENDIF
             COMMAND = ''
             CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
          END
@@ -1091,18 +1234,33 @@
 *
 * EXECUTE COMMAND
 *
-         IF VERB = 'SEARCH' THEN
-            SERIES<-1> = 'SAVE-LIST ' : @ACCOUNT : '.' : @USERNO : '.LIST'
-            EXECUTE SERIES CAPTURING RESULTS
+         IF VERB = 'LOGTO' THEN
+            $IFDEF DATABASE.UV
+                EXECUTE SERIES
+                ACCOUNT.NAME = @WHO
+            $ENDIF
+            $IFDEF DATABASE.D3
+                EXECUTE SERIES : ' (f'
+                ACCOUNT.NAME = @ACCOUNT
+            $ENDIF
 *
-            PRINT
-            MESSAGE = RESULTS<DCOUNT(RESULTS, @AM)-1>
-            PRINT MESSAGE
-            IF INDEX(MESSAGE,'0 record',1) = 0 THEN
-               SERIES = 'GET-LIST ' : @ACCOUNT : '.' : @USERNO : '.LIST'
-            END ELSE
-               SERIES = ''
-            END
+         END ELSE IF VERB = 'SEARCH' THEN
+            $IFDEF DATABASE.UV
+                SERIES<-1> = 'SAVE-LIST ' : @ACCOUNT : '.' : @USERNO : '.LIST'
+                EXECUTE SERIES CAPTURING RESULTS
+*
+                PRINT
+                MESSAGE = RESULTS<DCOUNT(RESULTS, @AM)-1>
+                PRINT MESSAGE
+                IF INDEX(MESSAGE,'0 record',1) = 0 THEN
+                    SERIES = 'GET-LIST ' : @ACCOUNT : '.' : @USERNO : '.LIST'
+                END ELSE
+                    SERIES = ''
+                END
+            $ENDIF
+            $IFDEF DATABASE.D3
+                EXECUTE SERIES
+            $ENDIF
 *
          END ELSE IF VERB = 'SAVE-LIST' THEN
             EXECUTE SERIES CAPTURING RESULTS
@@ -1125,6 +1283,7 @@
       IF NSH.HISTORY.OPENED THEN
          WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
       END
+*
       PRINT 'NSH: BYE'
 *
 * END OF PROGRAM.
