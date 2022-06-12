@@ -3,12 +3,11 @@ A Fancier Shell for Universe
 
 ## Installation
 
-Pull the file and then simply compile it. There are compile time directives you can use to compile NovaShell for UniVerse or D3. The default is UniVerse. 
+Clone the repository, copy over a single file and compile it! 
+
+There are compile time directives you can use to compile NovaShell for different database types or different platforms. The default compilation will compile NovaShell for UniVerse on Linux. 
 
 If you are using D3 10.2 or earlier, you'll need to use the compile time directives and also a cleaner program as ifdefs are not respected.
-
-
-The following instructions assume you are installing NovaShell on UniVerse on Linux. Otherwise, you'll need to edit the directives before you copy and compile NovaShell. 
 
 At the command line:
 ```
