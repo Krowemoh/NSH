@@ -1,5 +1,5 @@
 # NovaShell
-A Fancier Shell for Universe
+A Fancier Shell for MultiValue Databases
 
 ## Installation
 
