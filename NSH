@@ -24,12 +24,15 @@
 * 31 MAY 2022  N/A   NT   Move NSH-HISTORY-FILE to /tmp/               *
 *                         Remove Account Specific History              *
 * 10 JUN 2022  N/A   NT   Add Support for D3 and Windows               *
+* 20 JUN 2022  N/A   NT   Add a date and time conversion utility       *
+* 20 JUN 2022  N/A   NT   D3 - Breaking Change - Search = FIND         *
+*                         You cannot use the native search in D3       *
 *                                                                      *
 ************************************************************************
 *
 * VERSION
 *
-    VERSION = '0.4.2'
+    VERSION = '0.5.0'
 *
 * COMPILER DIRECTIVES
 *
@@ -45,6 +48,21 @@ $DEFINE PLATFORM.LINUX
 *
       EQU TRUE TO 1
       EQU FALSE TO 0
+*
+* SYSTEM FILE FOR UV ACCOUNTS
+*
+      $IFDEF DATABASE.UV
+        LOGTO.FILENAME = 'UV.ACCOUNT'
+      $ENDIF 
+      $IFDEF DATABASE.D3
+        LOGTO.FILENAME = 'SYSTEM'
+      $ENDIF
+*
+      LOGTO.OPENED = TRUE
+      OPEN '',LOGTO.FILENAME TO LOGTO.FILE ELSE
+         PRINT 'NSH: Unable to open file: ' : LOGTO.FILENAME  : ' - Press RETURN'
+         LOGTO.OPENED = FALSE
+      END
 *
 * SYSTEM FILE FOR VERBS
 *
@@ -128,6 +146,8 @@ $DEFINE PLATFORM.LINUX
             NSH.HISTORY.OPENED = FALSE
          END
       END
+*
+    PROMPT ''
 *
 * CLEARING LINES
 *
@@ -255,9 +275,7 @@ $DEFINE PLATFORM.LINUX
       SERIES.VERBS<1,-1> = 'SSELECT'
       SERIES.VERBS<1,-1> = 'GET-LIST'
       SERIES.VERBS<1,-1> = 'GET.LIST'
-      $IFDEF DATABASE.UV
-        SERIES.VERBS<1,-1> = 'SEARCH'
-      $ENDIF
+      SERIES.VERBS<1,-1> = 'SEARCH'
 *
       SERIES = ''
 *
@@ -580,6 +598,71 @@ $DEFINE PLATFORM.LINUX
             VERB = FIELD(COMMAND,' ',1)
 *
             BEGIN CASE
+               CASE LOGTO.OPENED AND VERB = 'LOGTO'
+                  VERB = TRIM(FIELD(COMMAND, ' ', 1))
+                  WORD = FIELD(COMMAND, ' ', 2)
+                  LENGTH.UP.TO.WORD = COL1()
+                  CURRENT.COMMAND = COMMAND[1, LENGTH.UP.TO.WORD]
+*
+                  $IFDEF DATABASE.UV
+                    STATEMENT = 'SSELECT ' : LOGTO.FILENAME  : ' = "': WORD : ']"'
+                  $ENDIF
+                  $IFDEF DATABASE.D3
+                    STATEMENT = 'SSELECT ' : LOGTO.FILENAME  : ' = "': WORD : ']" WITH A2 = "FSI]"'
+                  $ENDIF
+*
+                  EXECUTE STATEMENT CAPTURING RESULTS
+*
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+*
+                  IF RECORDS.SELECTED = 1 THEN
+                     READNEXT ITEM.ID ELSE ITEM.ID = ''
+*
+                     PRINT
+                     PRINT ITEM.ID
+                     PRINT BOTTOM :
+                     PRINT SHELL.PROMPT :
+                     PRINT VERB : ' ' : ITEM.ID : CLEAR.REST.OF.SCREEN :
+*
+                     COMMAND = VERB : ' ' : ITEM.ID
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+*
+                  END ELSE IF RECORDS.SELECTED = 0 THEN
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+*
+                  END ELSE
+                     PRINT
+                     FIRST.WORD = ''
+                     LAST.WORD = ''
+                     LOOP
+                        READNEXT ITEM.ID ELSE ITEM.ID = ''
+                     UNTIL ITEM.ID = '' DO
+                        PRINT ITEM.ID
+                        IF FIRST.WORD = '' THEN FIRST.WORD = ITEM.ID
+                        LAST.WORD = ITEM.ID
+                     REPEAT
+*
+                     COMPLETED.WORD = ''
+                     FOR I = 1 TO LEN(FIRST.WORD)
+                        IF FIRST.WORD[I,1] = LAST.WORD[I,1] THEN
+                           COMPLETED.WORD = COMPLETED.WORD : FIRST.WORD[I,1]
+                        END ELSE EXIT
+                     NEXT I
+*
+                     COMMAND = CURRENT.COMMAND : COMPLETED.WORD
+                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+*
+                     PRINT BOTTOM :
+                     PRINT SHELL.PROMPT :
+                     PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+                     PRINT.SHELL.PROMPT = FALSE
+                     CONTINUE
+                  END
+*
                CASE NEW.ACC.OPENED AND NUMBER.OF.ARGUMENTS = 1
                   STATEMENT = 'SSELECT NEWACC = "': TRIM(COMMAND) : ']"'
                   EXECUTE STATEMENT CAPTURING RESULTS
@@ -1232,7 +1315,7 @@ $DEFINE PLATFORM.LINUX
             SERIES<-1> = COMMAND<I>
          NEXT I
 *
-* EXECUTE COMMAND
+* EXECUTE CUSTOM COMMANDS
 *
          IF VERB = 'LOGTO' THEN
             $IFDEF DATABASE.UV
@@ -1246,19 +1329,55 @@ $DEFINE PLATFORM.LINUX
 *
          END ELSE IF VERB = 'SEARCH' THEN
             $IFDEF DATABASE.UV
-                SERIES<-1> = 'SAVE-LIST ' : @ACCOUNT : '.' : @USERNO : '.LIST'
+                SERIES.LENGTH = DCOUNT(SERIES,@AM)
+                IF DCOUNT(COMMAND,' ') >= 3 THEN
+                    COMMAND = CHANGE(COMMAND,'"','')
+                    SEARCH.FILE = FIELD(COMMAND,' ',2)
+                    SEARCH.KEY = TRIM(COMMAND[INDEX(COMMAND,SEARCH.FILE,1)+LEN(SEARCH.FILE)+1,9999])
+*
+                    PRINT SEARCH.KEY
+                    SERIES<SERIES.LENGTH> = 'SEARCH ' : SEARCH.FILE
+                    IF SERIES.LENGTH = 2 THEN 
+                        DATA ''
+                    END
+                    DATA SEARCH.KEY
+                    DATA ''
+                END
+*
+                SERIES<-1> = 'SAVE-LIST ' : USER.NAME : '.' : PORT.NUMBER : '.LIST'
                 EXECUTE SERIES CAPTURING RESULTS
 *
                 PRINT
                 MESSAGE = RESULTS<DCOUNT(RESULTS, @AM)-1>
                 PRINT MESSAGE
                 IF INDEX(MESSAGE,'0 record',1) = 0 THEN
-                    SERIES = 'GET-LIST ' : @ACCOUNT : '.' : @USERNO : '.LIST'
+                    SERIES = 'GET-LIST ' : USER.NAME : '.' : PORT.NUMBER : '.LIST'
                 END ELSE
                     SERIES = ''
                 END
             $ENDIF
+*
             $IFDEF DATABASE.D3
+                SERIES.LENGTH = DCOUNT(SERIES,@AM)
+                SERIES<SERIES.LENGTH> = CHANGE(SERIES<SERIES.LENGTH>,'SEARCH','FIND')
+*
+                IF DCOUNT(COMMAND,' ') >= 3 THEN
+                    COMMAND = CHANGE(COMMAND,'"','')
+                    SEARCH.FILE = FIELD(COMMAND,' ',2)
+                    SEARCH.KEY = TRIM(COMMAND[INDEX(COMMAND,SEARCH.FILE,1)+LEN(SEARCH.FILE)+1,9999])
+*
+                    PRINT SEARCH.KEY
+                    SERIES<SERIES.LENGTH> = 'FIND ' : SEARCH.FILE
+                    DATA SEARCH.KEY
+                    DATA ''
+                    DATA USER.NAME : '.' : PORT.NUMBER : '.LIST'
+                    EXECUTE SERIES CAPTURING RESULTS
+*
+                END ELSE
+                    EXECUTE SERIES
+                END
+*
+                SERIES = 'GET-LIST ' : USER.NAME : '.' : PORT.NUMBER : '.LIST'
                 EXECUTE SERIES
             $ENDIF
 *
@@ -1267,11 +1386,99 @@ $DEFINE PLATFORM.LINUX
             PRINT
             PRINT RESULTS<4>
 *
+         END ELSE IF VERB = 'DATECONV' THEN
+            LOOP
+                PRINT 'Date: ' :
+                INPUT DATE
+            UNTIL DATE = '' OR OCONV(DATE,"MCU") = 'Q' DO
+                IF DATE = 'TODAY' THEN
+                    PRINT 'Date: ' : DATE()
+                    PRINT OCONV(DATE(),'D')
+*
+                END ELSE IF LEN(DATE) = 5 THEN
+                    PRINT OCONV(DATE,'D')
+*
+                END ELSE
+                    PRINT OCONV(DATE,'DI')
+                END
+            REPEAT
+*
+         END ELSE IF VERB = 'TIMECONV' THEN
+            LOOP
+                PRINT 'Time: ' :
+                INPUT TIME
+            UNTIL TIME = '' OR OCONV(TIME,"MCU") = 'Q' DO
+                IF TIME = 'NOW' THEN
+                    PRINT 'Time: ' : TIME()
+                    PRINT OCONV(TIME(),'MT')
+*
+                END ELSE IF LEN(TIME) = 10 THEN
+                    PRINT OCONV(TIME+0,'MT')
+*
+                END ELSE
+                    PRINT OCONV(TIME,'T')
+                END
+            REPEAT
+*
+        END ELSE IF VERB = 'PRINT' THEN
+            PRINT.COMMAND = FIELD(COMMAND,' ',2)
+*
+            IF PRINT.COMMAND[1,5] = 'OCONV' OR PRINT.COMMAND[1,5] = 'ICONV' THEN
+                COMMAND = CHANGE(COMMAND,'"','')
+*
+                START.BRACKET = INDEX(COMMAND,'(',1)
+                END.BRACKET = INDEX(COMMAND,')',1)
+*
+                COMMAND = COMMAND[START.BRACKET+1, END.BRACKET-START.BRACKET-1]
+*
+                VALUE = FIELD(COMMAND,',',1) 
+                CONV = FIELD(COMMAND,',',2) 
+*
+                IF VERB[1,5] = 'OCONV' THEN
+                    PRINT OCONV(VALUE,CONV)
+                END ELSE 
+                    PRINT ICONV(VALUE,CONV)
+                END
+*
+            END ELSE IF PRINT.COMMAND = '@ACCOUNT' THEN
+                PRINT @ACCOUNT
+            END ELSE IF PRINT.COMMAND = '@WHO' THEN
+                PRINT @WHO
+            END ELSE IF PRINT.COMMAND = '@LOGNAME' THEN
+                PRINT @LOGNAME
+            END ELSE IF PRINT.COMMAND = '@USER.NO' THEN
+                PRINT @USER.NO
+            END ELSE IF PRINT.COMMAND = '@TTY' THEN
+                PRINT @TTY
+            END ELSE IF PRINT.COMMAND = 'DATE()' THEN
+                PRINT DATE()
+            END ELSE IF PRINT.COMMAND = 'TIME()' THEN
+                PRINT TIME()
+            END ELSE
+                PRINT 'NSH: Invalid print command.'
+            END
+*
+         END ELSE IF VERB = 'VERSION' THEN
+            PRINT '**************************************'
+            PRINT 'NSH: Version ' : VERSION
+            $IFDEF PLATFORM.LINUX
+                PRINT
+                PRINT 'NSH: cat /etc/os-release'
+                PRINT '**************************************'
+                EXECUTE 'SH -c "cat /etc/os-release"'
+            $ENDIF
+            $IFDEF DATABASE.UV
+                PRINT
+                PRINT 'NSH: CT MD RELLEVEL' 
+                PRINT '**************************************' :
+                EXECUTE 'CT MD RELLEVEL'
+            $ENDIF
+*
          END ELSE
             EXECUTE SERIES
          END
 *
-         LOCATE(VERB, SERIES.VERBS, 1;ANY.POS) ELSE
+         LOCATE(VERB,SERIES.VERBS,1;ANY.POS) ELSE
             SERIES = ''
          END
 *
