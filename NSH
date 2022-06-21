@@ -32,7 +32,7 @@
 *
 * VERSION
 *
-    VERSION = '0.5.0'
+    VERSION = '0.5.1'
 *
 * COMPILER DIRECTIVES
 *
@@ -238,7 +238,7 @@ $DEFINE PLATFORM.LINUX
                     STR = ''
                 END
             END
-            TERMINAL<ARROW.CTR,1> = STR
+            TERMINAL<-1> = STR
         REPEAT
       $ENDIF
 *

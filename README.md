@@ -88,7 +88,7 @@ Now you should have a compile ready version of NSH that you can copy to a BP fol
 - Man Basic: Help pages for basic can be found by doing MAN BASIC {ITEM} 
   - MAN BASIC MATREAD
 - Linux access: Shortcut to get to Linux and added ability to execute shell commands quickly (Same thing as doing sh in tcl)
-  - !curl google.ca 
+  - !curl google.ca
 
 ## Hacking
 Feel free to open up the file and make any changes you like, please submit them if you think others might get something out of it as well!
