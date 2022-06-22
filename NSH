@@ -5,6 +5,7 @@
 * 07 NOV 2021  N/A   NT   NovaShell v0.2                               *
 * 24 MAR 2022  N/A   NT   NovaShell v0.3                               *
 * 31 MAY 2022  N/A   NT   NovaShell v0.4                               *
+* 20 JUN 2022  N/A   NT   NovaShell v0.5                               *
 *                                                                      *
 ************************************************************************
 * Special Instructions                                                 *
@@ -32,7 +33,11 @@
 *
 * VERSION
 *
-    VERSION = '0.5.1'
+    MAJOR.VERSION = '0'
+    MINOR.VERSION = '5'
+    PATCH.VERSION = '2'
+*
+    VERSION = MAJOR.VERSION : '.' : MINOR.VERSION : '.' : PATCH.VERSION
 *
 * COMPILER DIRECTIVES
 *
@@ -48,6 +53,12 @@ $DEFINE PLATFORM.LINUX
 *
       EQU TRUE TO 1
       EQU FALSE TO 0
+*
+      STARTUP.MATRIX = ''
+      STARTUP.MATRIX<-1> = 'PQ'
+      STARTUP.MATRIX<-1> = 'HNSH'
+*
+
 *
 * SYSTEM FILE FOR UV ACCOUNTS
 *
@@ -88,16 +99,19 @@ $DEFINE PLATFORM.LINUX
          BASIC.HELP.OPENED = FALSE
       END
 *
+* SET VOC
+*
+     $IFDEF DATABASE.UV
+        VOC = 'VOC'
+     $ENDIF
+     $IFDEF DATABASE.D3
+        VOC = 'MD'
+     $ENDIF
+*
 * FILE FOR SAVING COMMAND HISTORY
 *
       NSH.HISTORY.OPENED = TRUE
       OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
-         $IFDEF DATABASE.UV
-            VOC = 'VOC'
-         $ENDIF
-         $IFDEF DATABASE.D3
-            VOC = 'MD'
-         $ENDIF
          OPEN '',VOC TO VOC.FILE THEN
             NSH.ENTRY = ''
             $IFDEF PLATFORM.LINUX
@@ -887,7 +901,7 @@ $DEFINE PLATFORM.LINUX
                            PRINT SHELL.PROMPT :
                            PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
 *
-                           IF VERB = 'MAN' OR FILE.LOOKUP = 'KP' THEN
+                           IF VERB = 'MAN' OR VERB = 'RUN' OR FILE.LOOKUP = 'KP' THEN
                               COMMAND = CURRENT.COMMAND : ITEM.ID
                            END ELSE
                               COMMAND = CURRENT.COMMAND : '"' : ITEM.ID : '"'
@@ -1419,6 +1433,45 @@ $DEFINE PLATFORM.LINUX
                     PRINT OCONV(TIME,'T')
                 END
             REPEAT
+*
+        END ELSE IF VERB = 'NSHUP' THEN
+            NSHUP.COMMAND = COMMAND[INDEX(COMMAND,' ',1)+1,9999]
+*
+            BEGIN CASE
+                CASE NSHUP.COMMAND = 'SHOW'
+                    PRINT 'NSH: Version ' : VERSION
+*
+                CASE NSHUP.COMMAND = 'ENABLE STARTUP'
+                    OPEN '',VOC TO VOC.FILE THEN
+                        READ POSSIBLE.STARTUP.MATRIX FROM VOC.FILE,USER.NAME THEN
+                            IF POSSIBLE.STARTUP.MATRIX = STARTUP.MATRIX THEN
+                                PRINT 'NSH: NSH is already enabled on startup.'
+                            END ELSE
+                                PRINT 'NSH: Did not enable NSH on startup.'
+                                PRINT 'NSH: ' : VOC : ' entry for ' : USER.NAME : ' already exists.'
+                            END
+*
+                        END ELSE
+                            WRITE STARTUP.MATRIX ON VOC.FILE,USER.NAME
+                            PRINT 'NSH: Enabled NSH on startup.'
+                        END
+                    END
+*
+                CASE NSHUP.COMMAND = 'DISABLE STARTUP'
+                    OPEN '',VOC TO VOC.FILE THEN
+                        READU POSSIBLE.STARTUP.MATRIX FROM VOC.FILE,USER.NAME THEN
+                            IF POSSIBLE.STARTUP.MATRIX = STARTUP.MATRIX THEN
+                                DELETE VOC.FILE,USER.NAME
+                                PRINT 'NSH: Disabled NSH from running on startup.'
+                            END
+                        END ELSE
+                            PRINT 'NSH: NSH is not enabled on startup.'
+                        END
+                    END
+*
+                CASE TRUE
+                    PRINT 'NSH: Invalid NSHUP command.'
+            END CASE
 *
         END ELSE IF VERB = 'PRINT' THEN
             PRINT.COMMAND = FIELD(COMMAND,' ',2)
