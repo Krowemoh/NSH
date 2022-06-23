@@ -1,3 +1,9 @@
+*
+* COMPILER DIRECTIVES
+*
+$DEFINE DATABASE.UV
+$DEFINE PLATFORM.LINUX
+*
 *ASI********************************************************************
 *                                                                      *
 * Create Date  Req#  Who  Description                                  *
@@ -35,14 +41,13 @@
 *
     MAJOR.VERSION = '0'
     MINOR.VERSION = '5'
-    PATCH.VERSION = '2'
+    PATCH.VERSION = '1'
 *
     VERSION = MAJOR.VERSION : '.' : MINOR.VERSION : '.' : PATCH.VERSION
 *
-* COMPILER DIRECTIVES
-*
-$DEFINE DATABASE.UV
-$DEFINE PLATFORM.LINUX
+* NSH MASTER URL
+* 
+    NSH.URL = 'https://raw.githubusercontent.com/Krowemoh/NovaShell/main/NSH'
 *
 * CONSTANTS
 *
@@ -1435,11 +1440,74 @@ $DEFINE PLATFORM.LINUX
             REPEAT
 *
         END ELSE IF VERB = 'NSHUP' THEN
+            SERIES = ''
             NSHUP.COMMAND = COMMAND[INDEX(COMMAND,' ',1)+1,9999]
 *
             BEGIN CASE
                 CASE NSHUP.COMMAND = 'SHOW'
                     PRINT 'NSH: Version ' : VERSION
+*
+                CASE NSHUP.COMMAND = 'CHECK' OR NSHUP.COMMAND = 'UPDATE'
+                    NSH.CHECK.COMMAND = 'curl -s ' : NSH.URL : ' | grep "MAJOR.VERSION =" -A2' 
+                    EXECUTE "SH -c '" : NSH.CHECK.COMMAND : "'" CAPTURING RESULTS
+*
+                    REMOTE.MAJOR.VERSION = FIELD(RESULTS<1>,"'",2)
+                    REMOTE.MINOR.VERSION = FIELD(RESULTS<2>,"'",2)
+                    REMOTE.PATCH.VERSION = FIELD(RESULTS<3>,"'",2)
+*
+                    REMOTE.VERSION = REMOTE.MAJOR.VERSION : '.' : REMOTE.MINOR.VERSION : '.' : REMOTE.PATCH.VERSION
+*
+                    PRINT 'NSH: Current version: ' : VERSION
+*
+                    IF REMOTE.MAJOR.VERSION > MAJOR.VERSION OR REMOTE.MINOR.VERSION > MINOR.VERSION OR REMOTE.PATCH.VERSION > PATCH.VERSION THEN
+                        PRINT 'NSH: Update to ' : REMOTE.VERSION : ' available.' 
+*
+                        IF NSHUP.COMMAND # 'UPDATE' THEN
+                            CONTINUE
+                        END
+*
+                        PRINT 'Do you want to update? (y/n) ' : 
+                        INPUT ANS
+*
+                        IF ANS # 'Y' THEN
+                            CONTINUE
+                            PRINT 'NSH: No changes made.'
+                        END
+*
+                        OPEN '',VOC TO VOC.FILE ELSE 
+                            PRINT 'Unable to open file: ' : VOC : ' - Press RETURN':
+                            CONTINUE 
+                        END
+*
+                        READ NSH.MD.ITEM FROM VOC.FILE,'NSH' ELSE
+                            PRINT 'NSH: NSH not found in master dictionary.'
+                            CONTINUE 
+                        END
+*
+                        PRINT 'Updating...'
+*
+                        $IFDEF DATABASE.UV
+                            BP = CHANGE(NSH.MD.ITEM<9>,'.O','',1)
+                            OPEN '',BP TO BP.FILE ELSE 
+                                PRINT 'Unable to open file: ' : BP : ' - Press RETURN':
+                                CONTINUE 
+                            END
+*
+                            NSH.GET.COMMAND = 'curl -s ' : NSH.URL 
+                            EXECUTE "SH -c '" : NSH.GET.COMMAND : "'" CAPTURING REMOTE.NSH.FILE 
+*
+                            WRITE REMOTE.NSH.FILE ON BP.FILE,'NSH'
+*
+                            EXECUTE 'BASIC ' : BP : ' NSH' 
+                        $ENDIF
+*
+                    END ELSE IF REMOTE.VERSION = VERSION THEN 
+                        PRINT 'NSH: NSH is up to date.'
+*
+                    END ELSE
+                        PRINT 'NSH: Remote version: ' : REMOTE.VERSION
+                        PRINT 'NSH: Current version is ahead.'
+                    END
 *
                 CASE NSHUP.COMMAND = 'ENABLE STARTUP'
                     OPEN '',VOC TO VOC.FILE THEN
