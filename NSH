@@ -1510,6 +1510,8 @@ $DEFINE PLATFORM.LINUX
                             WRITE REMOTE.NSH.FILE ON BP.FILE,'NSH'
 *
                             EXECUTE 'BASIC ' : BP : ' NSH' 
+*
+                            CHAIN 'NSH'
                         $ENDIF
 *
                     END ELSE IF REMOTE.VERSION = VERSION THEN 
