@@ -1440,8 +1440,10 @@ $DEFINE PLATFORM.LINUX
             REPEAT
 *
         END ELSE IF VERB = 'NSHUP' THEN
-            SERIES = ''
             NSHUP.COMMAND = COMMAND[INDEX(COMMAND,' ',1)+1,9999]
+*
+            SERIES = ''
+            COMMAND = ''
 *
             BEGIN CASE
                 CASE NSHUP.COMMAND = 'SHOW'
@@ -1488,6 +1490,15 @@ $DEFINE PLATFORM.LINUX
 *
                         $IFDEF DATABASE.UV
                             BP = CHANGE(NSH.MD.ITEM<9>,'.O','',1)
+*
+                            IF INDEX(BP,'/',1) # 0 THEN
+                                SERIES = ''
+                                PRINT 'NSH: Update from the original NSH location.'
+                                PRINT 'NSH: Location: ' : BP
+                                PRINT 'NSH: No changes made.'
+                                CONTINUE
+                            END
+*
                             OPEN '',BP TO BP.FILE ELSE 
                                 PRINT 'Unable to open file: ' : BP : ' - Press RETURN':
                                 CONTINUE 
@@ -1496,7 +1507,7 @@ $DEFINE PLATFORM.LINUX
                             NSH.GET.COMMAND = 'curl -s ' : NSH.URL 
                             EXECUTE "SH -c '" : NSH.GET.COMMAND : "'" CAPTURING REMOTE.NSH.FILE 
 *
-                            WRITE REMOTE.NSH.FILE ON BP.FILE,'NSH'
+*                            WRITE REMOTE.NSH.FILE ON BP.FILE,'NSH'
 *
                             EXECUTE 'BASIC ' : BP : ' NSH' 
                         $ENDIF
