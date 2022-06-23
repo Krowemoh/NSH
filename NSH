@@ -41,7 +41,7 @@ $DEFINE PLATFORM.LINUX
 *
     MAJOR.VERSION = '0'
     MINOR.VERSION = '5'
-    PATCH.VERSION = '4'
+    PATCH.VERSION = '5'
 *
     VERSION = MAJOR.VERSION : '.' : MINOR.VERSION : '.' : PATCH.VERSION
 *
@@ -1603,6 +1603,66 @@ $DEFINE PLATFORM.LINUX
                 PRINT 'NSH: Invalid print command.'
             END
 *
+         END ELSE IF VERB  = 'WATCH' THEN
+            COMMAND = COMMAND[7,999]
+*
+            IF COMMAND # '' THEN
+                PRINT 'Started watch of: ' : COMMAND
+*
+                RECORD.IDS = ''
+                ORIGINAL.RECORDS = ''
+                FILENAMES = ''
+*
+                FOR I = 1 TO DCOUNT(COMMAND,',')
+                    FILENAME = FIELD(TRIM(FIELD(COMMAND,',',I)),' ',1)
+                    RECORD.ID = FIELD(TRIM(FIELD(COMMAND,',',I)),' ',2)
+*
+                    OPEN '',FILENAME TO FILE THEN
+                        READ RECORD FROM FILE,RECORD.ID ELSE RECORD = ''
+*
+                        RECORD.IDS<I> = RECORD.ID
+                        FILENAMES<I> = FILENAME
+                        ORIGINAL.RECORDS<I> = LOWER(RECORD)
+*
+                    END ELSE
+                        PRINT 'Unable to open file: ' : FILENAME
+                    END
+                NEXT I
+*
+                LOOP WHILE TRUE DO
+                    SLEEP 1
+*
+                    FOR I = 1 TO DCOUNT(RECORD.IDS,@AM)
+                        IF FILENAMES<I> = '' THEN
+                            CONTINUE
+                        END
+*
+                        OPEN '',FILENAME TO FILE ELSE 
+                            CONTINUE
+                        END
+*
+                        READ RECORD FROM FILE,RECORD.IDS<I> ELSE RECORD = ''
+*
+                        IF ORIGINAL.RECORDS<I> # LOWER(RECORD) THEN
+                            ORIGINAL.RECORDS<I> = LOWER(RECORD)
+                            EXECUTE 'BASIC ' : FILENAMES<I> : ' ' : RECORD.IDS<I> CAPTURING RESULTS
+*
+                            IF RESULTS<3> = '' THEN
+                                PRINT OCONV(TIME(),'MTS') : ': ' : RESULTS<1>
+                            END ELSE
+                                PRINT OCONV(TIME(),'MTS') : ': ' :
+                                PRINT 'Error -----------------'
+                                PRINT
+                                FOR J = 1 TO DCOUNT(RESULTS,@AM)
+                                    PRINT RESULTS<J>
+                                NEXT J
+                            END
+                        END
+                    NEXT I
+*
+                REPEAT
+            END
+* 
          END ELSE IF VERB = 'VERSION' THEN
             PRINT 'NSH: Version ' : VERSION
 *
