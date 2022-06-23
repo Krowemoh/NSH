@@ -1520,6 +1520,10 @@ $DEFINE PLATFORM.LINUX
 *
                             CHAIN 'NSH'
                         $ENDIF
+                        $IFDEF
+                            PRINT 'NSH: Auto update not supported on D3.'
+                            PRINT 'NSH: Please visit: https://github.com/Krowemoh/NovaShell'
+                        $ENDIF
 *
                     END ELSE IF REMOTE.VERSION = VERSION THEN 
                         PRINT 'NSH: NSH is up to date.'
