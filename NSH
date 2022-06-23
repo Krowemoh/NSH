@@ -1507,7 +1507,7 @@ $DEFINE PLATFORM.LINUX
                             NSH.GET.COMMAND = 'curl -s ' : NSH.URL 
                             EXECUTE "SH -c '" : NSH.GET.COMMAND : "'" CAPTURING REMOTE.NSH.FILE 
 *
-*                            WRITE REMOTE.NSH.FILE ON BP.FILE,'NSH'
+                            WRITE REMOTE.NSH.FILE ON BP.FILE,'NSH'
 *
                             EXECUTE 'BASIC ' : BP : ' NSH' 
                         $ENDIF
@@ -1628,3 +1628,4 @@ $DEFINE PLATFORM.LINUX
 * END OF PROGRAM.
 *
    END
+
