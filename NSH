@@ -1450,8 +1450,15 @@ $DEFINE PLATFORM.LINUX
                     PRINT 'NSH: Version ' : VERSION
 *
                 CASE NSHUP.COMMAND = 'CHECK' OR NSHUP.COMMAND = 'UPDATE'
-                    NSH.CHECK.COMMAND = 'curl -s ' : NSH.URL : ' | grep "MAJOR.VERSION =" -A2' 
-                    EXECUTE "SH -c '" : NSH.CHECK.COMMAND : "'" CAPTURING RESULTS
+                    $IFDEF PLATFORM.LINUX
+                        NSH.CHECK.COMMAND = 'curl -s ' : NSH.URL : ' | grep "MAJOR.VERSION =" -A2' 
+                        EXECUTE "SH -c '" : NSH.CHECK.COMMAND : "'" CAPTURING RESULTS
+                    $ENDIF
+                    $IFDEF PLATFORM.WINDOWS
+                        PRINT 'NSH: Version checks and auto update not supported on Windows.'
+                        PRINT 'NSH: Please visit: https://github.com/Krowemoh/NovaShell'
+                        CONTINUE
+                    $ENDIF
 *
                     REMOTE.MAJOR.VERSION = FIELD(RESULTS<1>,"'",2)
                     REMOTE.MINOR.VERSION = FIELD(RESULTS<2>,"'",2)
