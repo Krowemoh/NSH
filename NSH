@@ -1520,7 +1520,7 @@ $DEFINE PLATFORM.LINUX
 *
                             CHAIN 'NSH'
                         $ENDIF
-                        $IFDEF
+                        $IFDEF DATABASE.D3
                             PRINT 'NSH: Auto update not supported on D3.'
                             PRINT 'NSH: Please visit: https://github.com/Krowemoh/NovaShell'
                         $ENDIF
@@ -1604,20 +1604,7 @@ $DEFINE PLATFORM.LINUX
             END
 *
          END ELSE IF VERB = 'VERSION' THEN
-            PRINT '**************************************'
             PRINT 'NSH: Version ' : VERSION
-            $IFDEF PLATFORM.LINUX
-                PRINT
-                PRINT 'NSH: cat /etc/os-release'
-                PRINT '**************************************'
-                EXECUTE 'SH -c "cat /etc/os-release"'
-            $ENDIF
-            $IFDEF DATABASE.UV
-                PRINT
-                PRINT 'NSH: CT MD RELLEVEL' 
-                PRINT '**************************************' :
-                EXECUTE 'CT MD RELLEVEL'
-            $ENDIF
 *
          END ELSE
             EXECUTE SERIES
