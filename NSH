@@ -484,6 +484,7 @@ $DEFINE PLATFORM.LINUX
 *
                      IF CURSOR.IN.COMMAND = LEN(COMMAND) THEN
                         COMMAND = COMMAND[1,LEN(COMMAND) - 1]
+                        $IFDEF DATABASE.UV
                         VERB = FIELD(COMMAND,' ',1)
                         LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
                             PRINT BOTTOM :
@@ -494,6 +495,10 @@ $DEFINE PLATFORM.LINUX
                             PRINT SHELL.PROMPT :
                             PRINT ERROR.COLOR : COMMAND : CLEAR.REST.OF.SCREEN :
                         END
+                        $ENDIF
+                        $IFDEF DATABASE.D3
+                            PRINT CLEAR.REST.OF.LINE :
+                        $ENDIF
 *
                      END ELSE
 *
@@ -591,6 +596,7 @@ $DEFINE PLATFORM.LINUX
                CURSOR.POSITION = CURSOR.POSITION + 1
             END
 *
+            $IFDEF DATABASE.UV
             VERB = FIELD(COMMAND,' ',1)
 *
             LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
@@ -602,6 +608,7 @@ $DEFINE PLATFORM.LINUX
                 PRINT SHELL.PROMPT :
                 PRINT ERROR.COLOR : COMMAND : CLEAR.REST.OF.SCREEN :
             END
+            $ENDIF
 *
          REPEAT
 *
