@@ -43,7 +43,7 @@ $DEFINE PLATFORM.LINUX
 *
     MAJOR.VERSION = '0'
     MINOR.VERSION = '6'
-    PATCH.VERSION = '0'
+    PATCH.VERSION = '1'
 *
     VERSION = MAJOR.VERSION : '.' : MINOR.VERSION : '.' : PATCH.VERSION
 *
@@ -64,8 +64,6 @@ $DEFINE PLATFORM.LINUX
       STARTUP.MATRIX = ''
       STARTUP.MATRIX<-1> = 'PQ'
       STARTUP.MATRIX<-1> = 'HNSH'
-*
-
 *
 * SYSTEM FILE FOR UV ACCOUNTS
 *
@@ -267,51 +265,67 @@ $DEFINE PLATFORM.LINUX
 *
 * SET UP TERMINAL COLORS
 *
+      BLACK = ''
       RED = ''
       GREEN = ''
       YELLOW = ''
       BLUE = ''
-      PURPLE = ''
+      MAGENTA = ''
       CYAN = ''
-      GREY = ''
+      WHITE = ''
 *
-      LIGHTRED = ''
-      LIGHTGREEN = ''
-      LIGHTYELLOW = ''
-      LIGHTBLUE = ''
-      LIGHTPURPLE = ''
-      LIGHTCYAN = ''
+      BRIGHTBLUE = ''
+      BRIGHTRED = ''
+      BRIGHTGREEN = ''
+      BRIGHTYELLOW = ''
+      BRIGHTBLUE = ''
+      BRIGHTMAGENTA = ''
+      BRIGHTCYAN = ''
+      BRIGHTWHITE = ''
 *
       RESET.COLOR = ''
 *
       IF TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color' THEN
         RESET.COLOR = ESCAPE.CODE : '[0m'
 *
+        BLACK = ESCAPE.CODE : '[30m'
         RED = ESCAPE.CODE : '[31m'
         GREEN = ESCAPE.CODE : '[32m'
         YELLOW = ESCAPE.CODE : '[33m'
         BLUE = ESCAPE.CODE : '[34m'
-        PURPLE = ESCAPE.CODE : '[35m'
+        MAGENTA = ESCAPE.CODE : '[35m'
         CYAN = ESCAPE.CODE : '[36m'
-        GREY = ESCAPE.CODE : '[90m'
+        WHITE = ESCAPE.CODE : '[37m'
 *
-        LIGHTRED = ESCAPE.CODE : '[91m'
-        LIGHTGREEN = ESCAPE.CODE : '[92m'
-        LIGHTYELLOW = ESCAPE.CODE : '[93m'
-        LIGHTBLUE = ESCAPE.CODE : '[94m'
-        LIGHTPURPLE = ESCAPE.CODE : '[95m'
-        LIGHTCYAN = ESCAPE.CODE : '[96m'
+        BRIGHTBLACK = ESCAPE.CODE : '[30;1m'
+        BRIGHTRED = ESCAPE.CODE : '[31;1m'
+        BRIGHTGREEN = ESCAPE.CODE : '[32;1m'
+        BRIGHTYELLOW = ESCAPE.CODE : '[33;1m'
+        BRIGHTBLUE = ESCAPE.CODE : '[34;1m'
+        BRIGHTMAGENTA = ESCAPE.CODE : '[35;1m'
+        BRIGHTCYAN = ESCAPE.CODE : '[36;1m'
+        BRIGHTWHITE = ESCAPE.CODE : '[37;1m'
       END
 *
-      PROMPT.COLOR = LIGHTCYAN
-      FOREGROUND.COLOR = LIGHTGREEN
+      PROMPT.COLOR = BRIGHTCYAN
+      FOREGROUND.COLOR = BRIGHTGREEN
+      INPUT.COLOR = BRIGHTCYAN
+      ERROR.COLOR = BRIGHTRED
 *
-      USER.COLOR = LIGHTYELLOW
-      PORT.COLOR = LIGHTBLUE
+      USER.COLOR = BRIGHTYELLOW
+      PORT.COLOR = BRIGHTBLUE
       AT.COLOR = GREEN
-      ACCOUNT.COLOR = LIGHTPURPLE
+      ACCOUNT.COLOR = BRIGHTMAGENTA
 *
       TERMINAL.POS = 1
+*
+* VALID VERBS
+*
+      OPEN '',VOC TO VOC.FILE ELSE 
+          PRINT 'Unable to open file: ' : VOC:
+      END
+      SELECT VOC.FILE
+      READLIST VALID.VERBS ELSE VALID.VERBS = ''
 *
 * SHELL INITIALIZATION
 *
@@ -372,8 +386,8 @@ $DEFINE PLATFORM.LINUX
              ACCOUNT.PROMPT = ACCOUNT.COLOR : ACCOUNT.NAME
 *
             SHELL.PREFIX = USER.PROMPT : COLON.PROMPT : PORT.PROMPT : AT.PROMPT : ACCOUNT.PROMPT
-            SHELL.DEFAULT.PROMPT = SHELL.PREFIX : PROMPT.COLOR : '> ' : FOREGROUND.COLOR
-            SERIES.PROMPT = SHELL.PREFIX : PROMPT.COLOR : '>> ' : FOREGROUND.COLOR
+            SHELL.DEFAULT.PROMPT = SHELL.PREFIX : PROMPT.COLOR : '> ' : INPUT.COLOR
+            SERIES.PROMPT = SHELL.PREFIX : PROMPT.COLOR : '>> ' : INPUT.COLOR
 *
             IF SERIES = '' THEN
                SHELL.PROMPT = SHELL.DEFAULT.PROMPT
@@ -409,6 +423,7 @@ $DEFINE PLATFORM.LINUX
 *
             BEGIN CASE
                CASE ASCII.CODE = SEQ(KEY.CARRIAGE.RETURN)
+                  PRINT FOREGROUND.COLOR : 
                   LINUX.COMMAND.MODE = FALSE
                   CURSOR.POSITION = LEN(SHELL.PROMPT)
                   TRUE.HISTORY.STACK.POINTER = 0 ; 
@@ -463,12 +478,22 @@ $DEFINE PLATFORM.LINUX
 *
                      IF CURSOR.IN.COMMAND = LEN(COMMAND) THEN
                         COMMAND = COMMAND[1,LEN(COMMAND) - 1]
-                        PRINT CLEAR.REST.OF.LINE :
+                        VERB = FIELD(COMMAND,' ',1)
+                        LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
+                            PRINT BOTTOM :
+                            PRINT SHELL.PROMPT :
+                            PRINT INPUT.COLOR : COMMAND : CLEAR.REST.OF.SCREEN :
+                        END ELSE
+                            PRINT BOTTOM :
+                            PRINT SHELL.PROMPT :
+                            PRINT ERROR.COLOR : COMMAND : CLEAR.REST.OF.SCREEN :
+                        END
+*
                      END ELSE
 *
 * SPECIAL DELETE FOR VIEWPOINT
 *
-                        IF TERMINAL<TERMINAL.TYPE.ATTRIBUTE, TERMINAL.POS> = 'viewpoint' THEN
+                        IF TERMINAL.TYPE = 'viewpoint' OR TERMINAL.TYPE = 'xterm-256color' THEN
                            COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
                            PRINT BOTTOM :
                            PRINT SHELL.PROMPT :
@@ -558,6 +583,17 @@ $DEFINE PLATFORM.LINUX
                   COMMAND = COMMAND[1,CURSOR.POSITION.IN.COMMAND] : CHR : COMMAND[CURSOR.POSITION.IN.COMMAND+1,9999]
                END
                CURSOR.POSITION = CURSOR.POSITION + 1
+            END
+*
+            VERB = FIELD(COMMAND,' ',1)
+            LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
+                PRINT BOTTOM :
+                PRINT SHELL.PROMPT :
+                PRINT INPUT.COLOR : COMMAND : CLEAR.REST.OF.SCREEN :
+            END ELSE
+                PRINT BOTTOM :
+                PRINT SHELL.PROMPT :
+                PRINT ERROR.COLOR : COMMAND : CLEAR.REST.OF.SCREEN :
             END
 *
          REPEAT
@@ -672,6 +708,8 @@ $DEFINE PLATFORM.LINUX
             NUMBER.OF.ARGUMENTS = DCOUNT(TRIM(COMMAND), ' ')
 *
             VERB = FIELD(COMMAND,' ',1)
+*
+            PRINT FOREGROUND.COLOR :
 *
             BEGIN CASE
                CASE LOGTO.OPENED AND VERB = 'LOGTO'
