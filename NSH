@@ -329,6 +329,17 @@ $IFDEF DATABASE.UV
       END
       SELECT VOC.FILE
       READLIST VALID.VERBS ELSE VALID.VERBS = ''
+*
+      VALID.VERBS<-1> = 'VERSION'
+      VALID.VERBS<-1> = 'PRINT'
+      VALID.VERBS<-1> = 'WATCH'
+      VALID.VERBS<-1> = 'TIMECONV'
+      VALID.VERBS<-1> = 'DATECONV'
+      VALID.VERBS<-1> = 'CLEAR'
+      VALID.VERBS<-1> = 'CLS'
+      VALID.VERBS<-1> = 'MAN'
+      VALID.VERBS<-1> = 'HISTORY'
+      VALID.VERBS<-1> = 'NSHUP'
 $ENDIF
 *
 $IFDEF DATABASE.D3
@@ -459,7 +470,7 @@ $ENDIF
                   CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   CONTINUE
 *
-               CASE ASCII.CODE = SEQ(KEY.CTRL.C)
+               CASE ASCII.CODE = SEQ(KEY.CTRL.A)
                   PRINT BOTTOM :
                   PRINT SHELL.PROMPT :
                   PRINT CLEAR.REST.OF.SCREEN :
@@ -1402,7 +1413,7 @@ $ENDIF
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                EXIT
 *
-            CASE COMMAND = 'CLEAR'
+            CASE COMMAND = 'CLEAR' OR COMMAND = 'CLS'
                COMMAND = 'CLR'
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
