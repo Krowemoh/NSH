@@ -321,11 +321,17 @@ $DEFINE PLATFORM.LINUX
 *
 * VALID VERBS
 *
-      OPEN '',VOC TO VOC.FILE ELSE 
-          PRINT 'Unable to open file: ' : VOC:
-      END
-      SELECT VOC.FILE
-      READLIST VALID.VERBS ELSE VALID.VERBS = ''
+      $IFDEF DATABASE.UV
+          OPEN '',VOC TO VOC.FILE ELSE 
+              PRINT 'Unable to open file: ' : VOC:
+          END
+          SELECT VOC.FILE
+          READLIST VALID.VERBS ELSE VALID.VERBS = ''
+      $ENDIF
+*
+      $IFDEF DATABASE.D3
+          VALID.VERBS = ''
+      $ENDIF
 *
 * SHELL INITIALIZATION
 *
@@ -586,6 +592,7 @@ $DEFINE PLATFORM.LINUX
             END
 *
             VERB = FIELD(COMMAND,' ',1)
+*
             LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
                 PRINT BOTTOM :
                 PRINT SHELL.PROMPT :
@@ -1717,7 +1724,17 @@ $DEFINE PLATFORM.LINUX
 *
                         RECORD.IDS<I> = RECORD.ID
                         FILENAMES<I> = FILENAME
-                        ORIGINAL.RECORDS<I> = LOWER(RECORD)
+*
+                        $IFDEF DATABASE.UV
+                            LOWERED.RECORD = LOWER(ORIGINAL.RECORDS<I>)
+                        $ENDIF
+*
+                        $IFDEF DATABASE.D3
+                            LOWERED.RECORD = ORIGINAL.RECORDS<I>
+                            CONVERT @AM:@VM:@SVM:@TM TO @VM:@SVM:@TM:@STM IN LOWERED.RECORD
+                        $ENDIF
+*
+                        ORIGINAL.RECORDS<I> = LOWERED.RECORD
 *
                     END ELSE
                         PRINT 'Unable to open file: ' : FILENAME
@@ -1738,8 +1755,17 @@ $DEFINE PLATFORM.LINUX
 *
                         READ RECORD FROM FILE,RECORD.IDS<I> ELSE RECORD = ''
 *
-                        IF ORIGINAL.RECORDS<I> # LOWER(RECORD) THEN
-                            ORIGINAL.RECORDS<I> = LOWER(RECORD)
+                        $IFDEF DATABASE.UV
+                            LOWERED.RECORD = LOWER(RECORD)
+                        $ENDIF
+*
+                        $IFDEF DATABASE.D3
+                            LOWERED.RECORD = RECORD
+                            CONVERT @AM:@VM:@SVM:@TM TO @VM:@SVM:@TM:@STM IN LOWERED.RECORD
+                        $ENDIF
+*
+                        IF ORIGINAL.RECORDS<I> # LOWERED.RECORD THEN
+                            ORIGINAL.RECORDS<I> = LOWERED.RECORD
                             EXECUTE 'BASIC ' : FILENAMES<I> : ' ' : RECORD.IDS<I> CAPTURING RESULTS
 *
                             IF RESULTS<3> = '' THEN
