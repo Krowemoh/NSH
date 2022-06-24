@@ -178,6 +178,7 @@ $DEFINE PLATFORM.LINUX
       EQU TRUE.HISTORY TO 2
 *
       EQU KEY.CTRL.A TO CHAR(1)
+      EQU KEY.CTRL.F TO CHAR(6)
       EQU KEY.ESCAPE TO CHAR(27)
       EQU KEY.BACKSPACE TO CHAR(8)
       EQU KEY.TAB TO CHAR(9)
@@ -274,7 +275,7 @@ $DEFINE PLATFORM.LINUX
       CYAN = ''
       WHITE = ''
 *
-      BRIGHTBLUE = ''
+      BRIGHTBLACK = ''
       BRIGHTRED = ''
       BRIGHTGREEN = ''
       BRIGHTYELLOW = ''
@@ -369,6 +370,7 @@ $DEFINE PLATFORM.LINUX
       SERIES = ''
 *
       COMMAND = ''
+      POSSIBLE.COMMAND = ''
       CURSOR.POSITION = -1
 *
       TAB.PRESSED = FALSE
@@ -395,16 +397,22 @@ $DEFINE PLATFORM.LINUX
             SHELL.DEFAULT.PROMPT = SHELL.PREFIX : PROMPT.COLOR : '> ' : INPUT.COLOR
             SERIES.PROMPT = SHELL.PREFIX : PROMPT.COLOR : '>> ' : INPUT.COLOR
 *
+            RAW.PREFIX = USER.NAME : ':' : PORT.NUMBER : '@' : ACCOUNT.NAME
+            RAW.DEFAULT.PROMPT = RAW.PREFIX : '> '
+            RAW.SERIES.PROMPT = RAW.PREFIX : '>> '
+*
             IF SERIES = '' THEN
                SHELL.PROMPT = SHELL.DEFAULT.PROMPT
+               RAW.SHELL.PROMPT = RAW.DEFAULT.PROMPT
             END ELSE
                SHELL.PROMPT = SERIES.PROMPT
+               RAW.SHELL.PROMPT = RAW.SERIES.PROMPT
             END
 *
             PRINT BOTTOM :
             PRINT SHELL.PROMPT :
 *
-            CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+            CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
          END
 *
          ESCAPE.SEQUENCE = ''
@@ -431,7 +439,7 @@ $DEFINE PLATFORM.LINUX
                CASE ASCII.CODE = SEQ(KEY.CARRIAGE.RETURN)
                   PRINT FOREGROUND.COLOR : 
                   LINUX.COMMAND.MODE = FALSE
-                  CURSOR.POSITION = LEN(SHELL.PROMPT)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT)
                   TRUE.HISTORY.STACK.POINTER = 0 ; 
                   SEARCH.COMMAND = ''
                   USER.INPUT = TRUE
@@ -447,7 +455,7 @@ $DEFINE PLATFORM.LINUX
                     PRINT CHR :
                   $ENDIF
                   COMMAND = COMMAND : CHR
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   CONTINUE
 *
                CASE ASCII.CODE = SEQ(KEY.CTRL.A)
@@ -457,8 +465,25 @@ $DEFINE PLATFORM.LINUX
                   PRINT.SHELL.PROMPT = FALSE
                   TRUE.HISTORY.STACK.POINTER = 0 ; 
                   COMMAND = ''
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   CONTINUE
+*
+               CASE ASCII.CODE = SEQ(KEY.CTRL.F)
+                   IF POSSIBLE.COMMAND # '' THEN
+                       COMMAND = POSSIBLE.COMMAND
+                       POSSIBLE.COMMAND = ''
+*
+                       PRINT BOTTOM :
+                       PRINT SHELL.PROMPT :
+                       PRINT COMMAND : 
+                       PRINT CLEAR.REST.OF.SCREEN :
+*
+                       PRINT.SHELL.PROMPT = FALSE
+                       TRUE.HISTORY.STACK.POINTER = 0 ; 
+                       CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+                    END
+*
+                    CONTINUE
 *
                CASE ASCII.CODE = SEQ(KEY.BACKSPACE) OR ASCII.CODE = SEQ(KEY.DELETE)
                   COMMAND.LENGTH = LEN(COMMAND)
@@ -472,7 +497,7 @@ $DEFINE PLATFORM.LINUX
 
                   END ELSE IF COMMAND.LENGTH > 0 THEN
 *
-                     CURSOR.IN.COMMAND = CURSOR.POSITION - LEN(SHELL.PROMPT)
+                     CURSOR.IN.COMMAND = CURSOR.POSITION - LEN(RAW.SHELL.PROMPT)
 *
                      IF CURSOR.IN.COMMAND <= 0 THEN
                         CONTINUE
@@ -587,7 +612,7 @@ $DEFINE PLATFORM.LINUX
             END CASE
 *
             IF NOT(AT.BEGINNING) THEN
-               CURSOR.POSITION.IN.COMMAND = CURSOR.POSITION - LEN(SHELL.PROMPT)
+               CURSOR.POSITION.IN.COMMAND = CURSOR.POSITION - LEN(RAW.SHELL.PROMPT)
                IF CURSOR.POSITION.IN.COMMAND = LEN(COMMAND) THEN
                   COMMAND = COMMAND : CHR
                END ELSE
@@ -597,16 +622,46 @@ $DEFINE PLATFORM.LINUX
             END
 *
             $IFDEF DATABASE.UV
-            VERB = FIELD(COMMAND,' ',1)
+            IF TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color' THEN
+                VERB = FIELD(COMMAND,' ',1)
+                POSSIBLE.COMMAND = ''
 *
-            LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
-                PRINT BOTTOM :
-                PRINT SHELL.PROMPT :
-                PRINT INPUT.COLOR : COMMAND : CLEAR.REST.OF.SCREEN :
-            END ELSE
-                PRINT BOTTOM :
-                PRINT SHELL.PROMPT :
-                PRINT ERROR.COLOR : COMMAND : CLEAR.REST.OF.SCREEN :
+                STACK.POINTER = 1
+                TRUE.HISTORY.LENGTH = DCOUNT(COMMAND.STACK<TRUE.HISTORY>, @VM)
+*
+                IF STACK.POINTER < TRUE.HISTORY.LENGTH THEN
+                    STACK.POINTER = STACK.POINTER + 1
+                    IF COMMAND # '' THEN
+                       SEARCH.COMMAND = COMMAND
+                    END
+                    IF SEARCH.COMMAND # '' THEN
+                       PREVIOUS.COMMAND = COMMAND
+                       LOOP
+                          STACK.COMMAND = COMMAND.STACK<TRUE.HISTORY, STACK.POINTER>
+                       UNTIL (STACK.POINTER >= TRUE.HISTORY.LENGTH OR INDEX(STACK.COMMAND,SEARCH.COMMAND,1) = 1) AND PREVIOUS.COMMAND # STACK.COMMAND DO
+                          STACK.POINTER = STACK.POINTER + 1
+                       REPEAT
+                    END
+                    POSSIBLE.COMMAND = COMMAND.STACK<TRUE.HISTORY, STACK.POINTER>
+                END
+*                
+                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+*
+                LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
+                    PRINT BOTTOM :
+                    PRINT SHELL.PROMPT :
+                    PRINT INPUT.COLOR : COMMAND : 
+                    PRINT BRIGHTBLACK : POSSIBLE.COMMAND[LEN(COMMAND)+1,9999] :
+                    PRINT CLEAR.REST.OF.SCREEN :
+                    PRINT @(CURSOR.POSITION) :
+                END ELSE
+                    PRINT BOTTOM :
+                    PRINT SHELL.PROMPT :
+                    PRINT ERROR.COLOR : COMMAND : 
+                    PRINT BRIGHTBLACK : POSSIBLE.COMMAND[LEN(COMMAND)+1,9999] :
+                    PRINT CLEAR.REST.OF.SCREEN :
+                    PRINT @(CURSOR.POSITION) :
+                END
             END
             $ENDIF
 *
@@ -640,7 +695,7 @@ $DEFINE PLATFORM.LINUX
                   COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER>
                   USER.INPUT = FALSE
 *
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                   PRINT BOTTOM :
                   PRINT SHELL.PROMPT :
@@ -672,7 +727,7 @@ $DEFINE PLATFORM.LINUX
 *
                   COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER>
                   USER.INPUT = FALSE
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                   PRINT BOTTOM :
                   PRINT SHELL.PROMPT :
@@ -683,7 +738,7 @@ $DEFINE PLATFORM.LINUX
                   CONTINUE
 *
                CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.LEFT.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 21 OR ESCAPE.SEQUENCE = 'OD'
-                  IF CURSOR.POSITION > LEN(SHELL.PROMPT) THEN
+                  IF CURSOR.POSITION > LEN(RAW.SHELL.PROMPT) THEN
                      CURSOR.POSITION = CURSOR.POSITION - 1
                      PRINT @(CURSOR.POSITION, 66) :
                      $IFDEF DATABASE.UV
@@ -695,7 +750,7 @@ $DEFINE PLATFORM.LINUX
                   CONTINUE
 *
                CASE ESCAPE.SEQUENCE = TERMINAL<TERMINAL.RIGHT.ATTRIBUTE, TERMINAL.POS> OR ESCAPE.SEQUENCE = 6 OR ESCAPE.SEQUENCE = 'OC' OR (TERMINAL.TYPE = 'wy50' AND ESCAPE.SEQUENCE = 12)
-                  IF CURSOR.POSITION < (LEN(SHELL.PROMPT) + LEN(COMMAND)) THEN
+                  IF CURSOR.POSITION < (LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)) THEN
                      CURSOR.POSITION = CURSOR.POSITION + 1
                      PRINT @(CURSOR.POSITION, 66) :
                      $IFDEF DATABASE.UV
@@ -753,12 +808,12 @@ $DEFINE PLATFORM.LINUX
                      PRINT VERB : ' ' : ITEM.ID : CLEAR.REST.OF.SCREEN :
 *
                      COMMAND = VERB : ' ' : ITEM.ID
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                      PRINT.SHELL.PROMPT = FALSE
                      CONTINUE
 *
                   END ELSE IF RECORDS.SELECTED = 0 THEN
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                      PRINT.SHELL.PROMPT = FALSE
                      CONTINUE
 *
@@ -782,7 +837,7 @@ $DEFINE PLATFORM.LINUX
                      NEXT I
 *
                      COMMAND = CURRENT.COMMAND : COMPLETED.WORD
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                      PRINT BOTTOM :
                      PRINT SHELL.PROMPT :
@@ -808,12 +863,12 @@ $DEFINE PLATFORM.LINUX
                      PRINT ITEM.ID : CLEAR.REST.OF.SCREEN :
 *
                      COMMAND = ITEM.ID
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                      PRINT.SHELL.PROMPT = FALSE
                      CONTINUE
 *
                   END ELSE IF RECORDS.SELECTED = 0 THEN
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                      PRINT.SHELL.PROMPT = FALSE
                      CONTINUE
 *
@@ -838,7 +893,7 @@ $DEFINE PLATFORM.LINUX
                      NEXT I
 *
                      COMMAND = COMPLETED.WORD
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                      PRINT BOTTOM :
                      PRINT SHELL.PROMPT :
@@ -874,12 +929,12 @@ $DEFINE PLATFORM.LINUX
                      PRINT VERB : ' ' : ITEM.ID : CLEAR.REST.OF.SCREEN :
 *
                      COMMAND = VERB : ' ' : ITEM.ID
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                      PRINT.SHELL.PROMPT = FALSE
                      CONTINUE
 *
                   END ELSE IF RECORDS.SELECTED = 0 THEN
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                      PRINT.SHELL.PROMPT = FALSE
                      CONTINUE
 *
@@ -903,7 +958,7 @@ $DEFINE PLATFORM.LINUX
                      NEXT I
 *
                      COMMAND = CURRENT.COMMAND : COMPLETED.WORD
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                      PRINT BOTTOM :
                      PRINT SHELL.PROMPT :
@@ -965,12 +1020,12 @@ $DEFINE PLATFORM.LINUX
                            PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
 *
                            COMMAND = CURRENT.COMMAND : ITEM.ID
-                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                            PRINT.SHELL.PROMPT = FALSE
                            CONTINUE
 *
                         END ELSE IF RECORDS.SELECTED = 0 THEN
-                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                            PRINT.SHELL.PROMPT = FALSE
                            CONTINUE
 *
@@ -995,7 +1050,7 @@ $DEFINE PLATFORM.LINUX
                            NEXT I
 *
                            COMMAND = CURRENT.COMMAND : COMPLETED.WORD
-                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                            PRINT BOTTOM :
                            PRINT SHELL.PROMPT :
@@ -1021,12 +1076,12 @@ $DEFINE PLATFORM.LINUX
                               COMMAND = CURRENT.COMMAND : '"' : ITEM.ID : '"'
                            END
 *
-                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                            PRINT.SHELL.PROMPT = FALSE
                            CONTINUE
 *
                         END ELSE IF RECORDS.SELECTED = 0 THEN
-                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                            PRINT.SHELL.PROMPT = FALSE
                            CONTINUE
 *
@@ -1050,7 +1105,7 @@ $DEFINE PLATFORM.LINUX
                            NEXT I
 *
                            COMMAND = CURRENT.COMMAND : COMPLETED.WORD
-                           CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                           CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                            PRINT BOTTOM :
                            PRINT SHELL.PROMPT :
@@ -1115,12 +1170,12 @@ $DEFINE PLATFORM.LINUX
             BEGIN CASE
                CASE PROCEED.STACK.OPERATION = FALSE
                   COMMAND = ''
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                CASE COMMAND[2,1] = 'L'
                   PRINT
                   COMMAND = ''
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   MAX = 20
                   IF COMMAND.STACK.LENGTH <= MAX THEN
                      MAX = COMMAND.STACK.LENGTH
@@ -1136,7 +1191,7 @@ $DEFINE PLATFORM.LINUX
 *
                CASE COMMAND[2,1] = 'X'
                   COMMAND = ''
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   IF PROCEED.STACK.OPERATION THEN
                      NUMBER.OF.COMMANDS = DCOUNT(COMMAND.NUMBERS,@AM)
                      FOR I = 1 TO NUMBER.OF.COMMANDS
@@ -1147,12 +1202,12 @@ $DEFINE PLATFORM.LINUX
                            EXIT
                         END
                      NEXT I
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   END
 *
                CASE COMMAND[2,1] = 'D'
                   COMMAND = ''
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   IF PROCEED.STACK.OPERATION THEN
                      PRINT
                      COMMAND.STACK<HISTORY> = DELETE(COMMAND.STACK,1,COMMAND.NUMBER)
@@ -1164,7 +1219,7 @@ $DEFINE PLATFORM.LINUX
 *
                CASE COMMAND[2,1] = 'R'
                   COMMAND = ''
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   IF PROCEED.STACK.OPERATION THEN
                      COMMAND = COMMAND.STACK<HISTORY,COMMAND.NUMBER>
                      COMMAND.STACK<HISTORY> = DELETE(COMMAND.STACK,1,COMMAND.NUMBER)
@@ -1179,7 +1234,7 @@ $DEFINE PLATFORM.LINUX
                         WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
                      END
                      COMMAND = ''
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   END
 *
                CASE COMMAND[2,1] = 'A'
@@ -1193,7 +1248,7 @@ $DEFINE PLATFORM.LINUX
                         PRINT COMMAND.NUMBER : ' ' : COMMAND.STACK<HISTORY,1> :
                      END
                      COMMAND = ''
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   END
 *
                CASE COMMAND[2,1] = 'U'
@@ -1207,7 +1262,7 @@ $DEFINE PLATFORM.LINUX
                      END
 
                      COMMAND = ''
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   END
 *
                CASE COMMAND[2,1] = 'C'
@@ -1271,7 +1326,7 @@ $DEFINE PLATFORM.LINUX
 *
                            IF PROCEED THEN
                               COMMAND = EREPLACE(COMMAND.STACK<HISTORY,CHANGE.STACK.POINTER>,STRING1,STRING2,HOW.MANY)
-                              CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                              CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                               PRINT
                               IF CHANGE.STACK.POINTER < 10 THEN
@@ -1285,14 +1340,14 @@ $DEFINE PLATFORM.LINUX
                         END
                      END
                      COMMAND = ''
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                   END
 *
                CASE TRUE
                   PRINT
                   PRINT 'NSH: Invalid command stack manipulation.' :
                   COMMAND = ''
-                  CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                  CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
             END CASE
          END
@@ -1305,7 +1360,7 @@ $DEFINE PLATFORM.LINUX
                     PRINT
                     EXECUTE 'SH'
                     COMMAND = ''
-                    CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                    CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                 $ENDIF
             $ENDIF
 *
@@ -1323,7 +1378,7 @@ $DEFINE PLATFORM.LINUX
                 EXECUTE '! ' : '"' : COMMAND : '"'
             $ENDIF
             COMMAND = ''
-            CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+            CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
          END
 *
          PRINT
@@ -1335,16 +1390,16 @@ $DEFINE PLATFORM.LINUX
          BEGIN CASE
             CASE COMMAND = 'Q'
                COMMAND = ''
-               CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+               CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                EXIT
 *
             CASE COMMAND = 'CLEAR'
                COMMAND = 'CLR'
-               CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+               CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
             CASE COMMAND[1,3] = 'LS '
                COMMAND = CHANGE(COMMAND, 'LS ', 'LIST ', 1)
-               CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+               CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
             CASE COMMAND = 'HISTORY'
                FOR I = DCOUNT(COMMAND.STACK<TRUE.HISTORY>,@VM) TO 1 STEP -1
@@ -1356,7 +1411,7 @@ $DEFINE PLATFORM.LINUX
                NEXT I
 *
                COMMAND = ''
-               CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+               CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                CONTINUE
 *
 * HELP MANIPULATION
@@ -1384,7 +1439,7 @@ $DEFINE PLATFORM.LINUX
                   CASE ACTION = ''
                      EXECUTE 'SORT SYS.HELP @ID ID-SUPP'
                      COMMAND = ''
-                     CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                      CONTINUE
 *
                   CASE ACTION = 'BASIC' AND BASIC.VERB # ''
@@ -1393,13 +1448,13 @@ $DEFINE PLATFORM.LINUX
                      IF ACTION.TYPE = '' THEN
                         PRINT 'NSH: BASIC keyword not in manual: ' : BASIC.VERB
                         COMMAND = ''
-                        CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                        CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                         CONTINUE
                      END ELSE
                         PRINT 'NSH: BASIC Help: ' : BASIC.VERB
                         EXECUTE 'LIST BASIC.HELP ' : '"' : BASIC.VERB : '"'
                         COMMAND = ''
-                        CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                        CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                         CONTINUE
                      END
 *
@@ -1414,13 +1469,13 @@ $DEFINE PLATFORM.LINUX
                      IF ACTION.TYPE = '' THEN
                         PRINT 'NSH: System keyword not in manual: ' : ACTION
                         COMMAND = ''
-                        CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                        CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                         CONTINUE
                      END ELSE
                         PRINT 'NSH: Help: ' : ACTION
                         EXECUTE 'CT SYS.HELP ' : ACTION : ' (S)'
                         COMMAND = ''
-                        CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+                        CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                         CONTINUE
                      END
 *
@@ -1803,7 +1858,7 @@ $DEFINE PLATFORM.LINUX
          END
 *
          COMMAND = ''
-         CURSOR.POSITION = LEN(SHELL.PROMPT) + LEN(COMMAND)
+         CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
       REPEAT
 *
