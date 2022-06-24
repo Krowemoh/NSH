@@ -12,6 +12,7 @@ $DEFINE PLATFORM.LINUX
 * 24 MAR 2022  N/A   NT   NovaShell v0.3                               *
 * 31 MAY 2022  N/A   NT   NovaShell v0.4                               *
 * 20 JUN 2022  N/A   NT   NovaShell v0.5                               *
+* 24 JUN 2022  N/A   NT   NovaShell v0.6                               *
 *                                                                      *
 ************************************************************************
 * Special Instructions                                                 *
@@ -34,14 +35,15 @@ $DEFINE PLATFORM.LINUX
 * 20 JUN 2022  N/A   NT   Add a date and time conversion utility       *
 * 20 JUN 2022  N/A   NT   D3 - Breaking Change - Search = FIND         *
 *                         You cannot use the native search in D3       *
+* 24 JUN 2022  N/A   NT   Added color support - xterm                  *
 *                                                                      *
 ************************************************************************
 *
 * VERSION
 *
     MAJOR.VERSION = '0'
-    MINOR.VERSION = '5'
-    PATCH.VERSION = '5'
+    MINOR.VERSION = '6'
+    PATCH.VERSION = '0'
 *
     VERSION = MAJOR.VERSION : '.' : MINOR.VERSION : '.' : PATCH.VERSION
 *
@@ -186,6 +188,8 @@ $DEFINE PLATFORM.LINUX
       EQU KEY.EXCLAIMATION.MARK TO CHAR(33)
       EQU KEY.DELETE TO CHAR(127)
 *
+      EQU ESCAPE.CODE TO CHAR(27)
+*
 * MAKE TERMINAL MAX SIZE BASED ON WINTEGRATE
 *
       EXECUTE 'TERM 132,66'
@@ -261,6 +265,52 @@ $DEFINE PLATFORM.LINUX
         REPEAT
       $ENDIF
 *
+* SET UP TERMINAL COLORS
+*
+      RED = ''
+      GREEN = ''
+      YELLOW = ''
+      BLUE = ''
+      PURPLE = ''
+      CYAN = ''
+      GREY = ''
+*
+      LIGHTRED = ''
+      LIGHTGREEN = ''
+      LIGHTYELLOW = ''
+      LIGHTBLUE = ''
+      LIGHTPURPLE = ''
+      LIGHTCYAN = ''
+*
+      RESET.COLOR = ''
+*
+      IF TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color' THEN
+        RESET.COLOR = ESCAPE.CODE : '[0m'
+*
+        RED = ESCAPE.CODE : '[31m'
+        GREEN = ESCAPE.CODE : '[32m'
+        YELLOW = ESCAPE.CODE : '[33m'
+        BLUE = ESCAPE.CODE : '[34m'
+        PURPLE = ESCAPE.CODE : '[35m'
+        CYAN = ESCAPE.CODE : '[36m'
+        GREY = ESCAPE.CODE : '[90m'
+*
+        LIGHTRED = ESCAPE.CODE : '[91m'
+        LIGHTGREEN = ESCAPE.CODE : '[92m'
+        LIGHTYELLOW = ESCAPE.CODE : '[93m'
+        LIGHTBLUE = ESCAPE.CODE : '[94m'
+        LIGHTPURPLE = ESCAPE.CODE : '[95m'
+        LIGHTCYAN = ESCAPE.CODE : '[96m'
+      END
+*
+      PROMPT.COLOR = LIGHTCYAN
+      FOREGROUND.COLOR = LIGHTGREEN
+*
+      USER.COLOR = LIGHTYELLOW
+      PORT.COLOR = LIGHTBLUE
+      AT.COLOR = GREEN
+      ACCOUNT.COLOR = LIGHTPURPLE
+*
       TERMINAL.POS = 1
 *
 * SHELL INITIALIZATION
@@ -307,6 +357,7 @@ $DEFINE PLATFORM.LINUX
 *
       LINUX.COMMAND.MODE = FALSE
 *
+      PRINT FOREGROUND.COLOR :
       PRINT 'Welcome to NovaShell ' : VERSION : '!'
       PRINT 'NSH: Your term is set to ' : TERMINAL.TYPE : '.'
 *
@@ -314,9 +365,15 @@ $DEFINE PLATFORM.LINUX
 *
       LOOP WHILE TRUE DO
          IF PRINT.SHELL.PROMPT THEN
-            SHELL.PREFIX = USER.NAME : ':' : PORT.NUMBER : '@' : ACCOUNT.NAME
-            SHELL.DEFAULT.PROMPT = SHELL.PREFIX : '> '
-            SERIES.PROMPT = SHELL.PREFIX : '>> '
+             USER.PROMPT = USER.COLOR : USER.NAME
+             PORT.PROMPT = PORT.COLOR : PORT.NUMBER
+             AT.PROMPT = AT.COLOR : '@'
+             COLON.PROMPT = AT.COLOR : ':'
+             ACCOUNT.PROMPT = ACCOUNT.COLOR : ACCOUNT.NAME
+*
+            SHELL.PREFIX = USER.PROMPT : COLON.PROMPT : PORT.PROMPT : AT.PROMPT : ACCOUNT.PROMPT
+            SHELL.DEFAULT.PROMPT = SHELL.PREFIX : PROMPT.COLOR : '> ' : FOREGROUND.COLOR
+            SERIES.PROMPT = SHELL.PREFIX : PROMPT.COLOR : '>> ' : FOREGROUND.COLOR
 *
             IF SERIES = '' THEN
                SHELL.PROMPT = SHELL.DEFAULT.PROMPT
@@ -906,7 +963,7 @@ $DEFINE PLATFORM.LINUX
                            PRINT SHELL.PROMPT :
                            PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
 *
-                           IF VERB = 'MAN' OR VERB = 'RUN' OR FILE.LOOKUP = 'KP' THEN
+                           IF VERB = 'MAN' OR VERB = 'RUN' OR VERB = 'FORMAT' OR FILE.LOOKUP = 'KP' THEN
                               COMMAND = CURRENT.COMMAND : ITEM.ID
                            END ELSE
                               COMMAND = CURRENT.COMMAND : '"' : ITEM.ID : '"'
@@ -1688,4 +1745,3 @@ $DEFINE PLATFORM.LINUX
 * END OF PROGRAM.
 *
    END
-
