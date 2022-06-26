@@ -330,18 +330,20 @@ $IFDEF DATABASE.UV
       SELECT VOC.FILE
       READLIST VALID.VERBS ELSE VALID.VERBS = ''
 *
-      VALID.VERBS<-1> = 'VERSION'
-      VALID.VERBS<-1> = 'PRINT'
-      VALID.VERBS<-1> = 'WATCH'
-      VALID.VERBS<-1> = 'TIMECONV'
-      VALID.VERBS<-1> = 'DATECONV'
       VALID.VERBS<-1> = 'CLEAR'
       VALID.VERBS<-1> = 'CLS'
-      VALID.VERBS<-1> = 'MAN'
-      VALID.VERBS<-1> = 'HISTORY'
-      VALID.VERBS<-1> = 'NSHUP'
+      VALID.VERBS<-1> = 'DATECONV'
       VALID.VERBS<-1> = 'EXIT'
+      VALID.VERBS<-1> = 'HISTORY'
+      VALID.VERBS<-1> = 'MAN'
+      VALID.VERBS<-1> = 'NSHUP'
+      VALID.VERBS<-1> = 'PRINT'
+      VALID.VERBS<-1> = 'Q'
+      VALID.VERBS<-1> = 'SEARCH'
       VALID.VERBS<-1> = 'TCL'
+      VALID.VERBS<-1> = 'TIMECONV'
+      VALID.VERBS<-1> = 'VERSION'
+      VALID.VERBS<-1> = 'WATCH'
 $ENDIF
 *
 $IFDEF DATABASE.D3
@@ -1406,11 +1408,13 @@ $ENDIF
 *
          BEGIN CASE
             CASE COMMAND = 'TCL'
+               PRINT RESET.COLOR :
                COMMAND = ''
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                EXIT
 *
             CASE COMMAND = 'Q' OR COMMAND = 'EXIT'
+               PRINT RESET.COLOR :
                COMMAND = ''
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                CHAIN 'Q'
