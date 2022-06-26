@@ -340,6 +340,8 @@ $IFDEF DATABASE.UV
       VALID.VERBS<-1> = 'MAN'
       VALID.VERBS<-1> = 'HISTORY'
       VALID.VERBS<-1> = 'NSHUP'
+      VALID.VERBS<-1> = 'EXIT'
+      VALID.VERBS<-1> = 'TCL'
 $ENDIF
 *
 $IFDEF DATABASE.D3
@@ -1403,9 +1405,15 @@ $ENDIF
 * EXECUTE NSH VERBS
 *
          BEGIN CASE
+            CASE COMMAND = 'TCL'
+               COMMAND = ''
+               CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+               EXIT
+*
             CASE COMMAND = 'Q' OR COMMAND = 'EXIT'
                COMMAND = ''
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+               CHAIN 'Q'
                EXIT
 *
             CASE COMMAND = 'CLEAR' OR COMMAND = 'CLS'
