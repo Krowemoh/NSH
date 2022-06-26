@@ -822,7 +822,6 @@ $ENDIF
                      READNEXT ITEM.ID ELSE ITEM.ID = ''
 *
                      PRINT
-                     PRINT ITEM.ID
                      PRINT BOTTOM :
                      PRINT SHELL.PROMPT :
                      PRINT VERB : ' ' : ITEM.ID : CLEAR.REST.OF.SCREEN :
@@ -877,7 +876,6 @@ $ENDIF
                      READV ITEM.DESCRIPTION FROM NEWACC.FILE, ITEM.ID, 1 ELSE ITEM.DESCRIPTION = ''
 *
                      PRINT
-                     PRINT ITEM.ID 'L#25' : ITEM.DESCRIPTION
                      PRINT BOTTOM :
                      PRINT SHELL.PROMPT :
                      PRINT ITEM.ID : CLEAR.REST.OF.SCREEN :
@@ -943,7 +941,6 @@ $ENDIF
                      READNEXT ITEM.ID ELSE ITEM.ID = ''
 *
                      PRINT
-                     PRINT ITEM.ID
                      PRINT BOTTOM :
                      PRINT SHELL.PROMPT :
                      PRINT VERB : ' ' : ITEM.ID : CLEAR.REST.OF.SCREEN :
@@ -1034,7 +1031,6 @@ $ENDIF
                            READNEXT ITEM.ID ELSE ITEM.ID = ''
 *
                            PRINT
-                           PRINT 'DICT: ' : ITEM.ID
                            PRINT BOTTOM :
                            PRINT SHELL.PROMPT :
                            PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
@@ -1085,7 +1081,6 @@ $ENDIF
                            READNEXT ITEM.ID ELSE ITEM.ID = ''
 *
                            PRINT
-                           PRINT 'ID: ': ITEM.ID
                            PRINT BOTTOM :
                            PRINT SHELL.PROMPT :
                            PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
@@ -1408,7 +1403,7 @@ $ENDIF
 * EXECUTE NSH VERBS
 *
          BEGIN CASE
-            CASE COMMAND = 'Q'
+            CASE COMMAND = 'Q' OR COMMAND = 'EXIT'
                COMMAND = ''
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                EXIT
