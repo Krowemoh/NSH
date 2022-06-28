@@ -1428,7 +1428,12 @@ $ENDIF
                PRINT RESET.COLOR :
                COMMAND = ''
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+$IFDEF DATABASE.UV
                CHAIN 'Q'
+$ENDIF
+$IFDEF DATABASE.D3
+               CHAIN 'EXIT'
+$ENDIF
                EXIT
 *
             CASE COMMAND = 'CLEAR' OR COMMAND = 'CLS'
