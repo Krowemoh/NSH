@@ -78,7 +78,7 @@ $ENDIF
 *
       LOGTO.OPENED = TRUE
       OPEN '',LOGTO.FILENAME TO LOGTO.FILE ELSE
-         PRINT 'NSH: Unable to open file: ' : LOGTO.FILENAME : ' - Press RETURN'
+         PRINT 'NSH: Unable to open file: ' : LOGTO.FILENAME
          LOGTO.OPENED = FALSE
       END
 *
@@ -86,7 +86,7 @@ $ENDIF
 *
       NEW.ACC.OPENED = TRUE
       OPEN '','NEWACC' TO NEWACC.FILE ELSE
-         PRINT 'NSH: Unable to open file: NEWACC - Press RETURN'
+         PRINT 'NSH: Unable to open file: NEWACC'
          NEW.ACC.OPENED = FALSE
       END
 *
@@ -94,7 +94,7 @@ $ENDIF
 *
       SYS.HELP.OPENED = TRUE
       OPEN '','SYS.HELP' TO SYS.HELP.FILE ELSE
-         PRINT 'NSH: Unable to open file: SYS.HELP - Press RETURN'
+         PRINT 'NSH: Unable to open file: SYS.HELP'
          SYS.HELP.OPENED = FALSE
       END
 *
@@ -102,7 +102,7 @@ $ENDIF
 *
       BASIC.HELP.OPENED = TRUE
       OPEN '','BASIC.HELP' TO BASIC.HELP.FILE ELSE
-         PRINT 'NSH: Unable to open file: BASIC.HELP - Press RETURN'
+         PRINT 'NSH: Unable to open file: BASIC.HELP' 
          BASIC.HELP.OPENED = FALSE
       END
 *
@@ -163,7 +163,7 @@ $ENDIF
                END
             END
          END ELSE
-            PRINT 'NSH: Unable to open file: VOC - Press RETURN'
+            PRINT 'NSH: Unable to open file: VOC'
             NSH.HISTORY.OPENED = FALSE
          END
       END
@@ -1686,7 +1686,7 @@ $ENDIF
                      END
 *
                      OPEN '',VOC TO VOC.FILE ELSE
-                        PRINT 'Unable to open file: ' : VOC : ' - Press RETURN':
+                        PRINT 'Unable to open file: ' : VOC :
                         CONTINUE
                      END
 *
@@ -1709,7 +1709,7 @@ $IFDEF DATABASE.UV
                      END
 *
                      OPEN '',BP TO BP.FILE ELSE
-                        PRINT 'Unable to open file: ' : BP : ' - Press RETURN':
+                        PRINT 'Unable to open file: ' : BP :
                         CONTINUE
                      END
 *
