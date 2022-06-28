@@ -681,11 +681,6 @@ $ENDIF
                END ELSE
                   COMMAND = COMMAND[1,CURSOR.POSITION.IN.COMMAND] : CHR : COMMAND[CURSOR.POSITION.IN.COMMAND+1,9999]
                   CURSOR.POSITION = CURSOR.POSITION + 1
-                  PRINT BOTTOM :
-                  PRINT SHELL.PROMPT :
-                  PRINT INPUT.COLOR : COMMAND :
-                  PRINT CLEAR.REST.OF.SCREEN :
-                  PRINT @(CURSOR.POSITION) :
                END
             END
 *
