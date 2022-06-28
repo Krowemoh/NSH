@@ -564,6 +564,13 @@ $ENDIF
 $IFDEF DATABASE.UV
                            PRINT @(-22) :
 $ENDIF
+$IFDEF DATABASE.D3
+                            PRINT BOTTOM :
+                            PRINT SHELL.PROMPT :
+                            PRINT INPUT.COLOR : COMMAND :
+                            PRINT CLEAR.REST.OF.SCREEN :
+                            PRINT @(CURSOR.POSITION) :
+$ENDIF
                         END
                      END
                   END
@@ -681,6 +688,13 @@ $ENDIF
                END ELSE
                   COMMAND = COMMAND[1,CURSOR.POSITION.IN.COMMAND] : CHR : COMMAND[CURSOR.POSITION.IN.COMMAND+1,9999]
                   CURSOR.POSITION = CURSOR.POSITION + 1
+$IFDEF DATABASE.D3
+                  PRINT BOTTOM :
+                  PRINT SHELL.PROMPT :
+                  PRINT INPUT.COLOR : COMMAND :
+                  PRINT CLEAR.REST.OF.SCREEN :
+                  PRINT @(CURSOR.POSITION) :
+$ENDIF
                END
             END
 *
