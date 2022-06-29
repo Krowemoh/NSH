@@ -362,7 +362,10 @@ $ENDIF
 *
       IF NSH.PROFILE # ''  AND NSH.PROFILE<1> # '' THEN
           FOR I = 1 TO DCOUNT(NSH.PROFILE<1>,@VM) 
-            NSH.COLORS<I> = ESCAPE.CODE : NSH.PROFILE<1,I>
+            NSH.COLOR = NSH.PROFILE<1,I>
+            IF NSH.COLOR # '' THEN
+                NSH.COLORS<I> = ESCAPE.CODE : NSH.COLOR 
+            END
           NEXT I
       END
 *
@@ -693,6 +696,16 @@ $IFDEF DATABASE.UV
                      CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                      LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
+                        VALID.VERB = TRUE
+                     END ELSE
+                        IF COMMAND[1,1] = '.' THEN
+                            VALID.VERB = TRUE
+                        END ELSE
+                            VALID.VERB = FALSE
+                        END
+                     END
+*
+                     IF VALID.VERB THEN
                         PRINT BOTTOM :
                         PRINT SHELL.PROMPT :
                         PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
