@@ -297,6 +297,7 @@ $ENDIF
 *
 * SET UP TERMINAL COLORS
 *
+      RESET.COLOR = ''
       BLACK = ''
       RED = ''
       GREEN = ''
