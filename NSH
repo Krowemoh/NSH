@@ -335,7 +335,32 @@ $ENDIF
          BRIGHTMAGENTA = ESCAPE.CODE : '[38;5;13m'
          BRIGHTCYAN = ESCAPE.CODE : '[38;5;14m'
          BRIGHTWHITE = ESCAPE.CODE : '[38;5;15m'
+         RESET.COLOR = ESCAPE.CODE : '[0m'
+*
+* OVERWRITE FOR WINTEGRATE - TODO
+*
+         BLACK = ESCAPE.CODE : '[30m'
+         RED = ESCAPE.CODE : '[31m'
+         GREEN = ESCAPE.CODE : '[32m'
+         YELLOW = ESCAPE.CODE : '[33m'
+         BLUE = ESCAPE.CODE : '[34m'
+         MAGENTA = ESCAPE.CODE : '[35m'
+         CYAN = ESCAPE.CODE : '[36m'
+         WHITE = ESCAPE.CODE : '[37m'
+*
+         BRIGHTBLACK = ESCAPE.CODE : '[30;1m'
+         BRIGHTRED = ESCAPE.CODE : '[31;1m'
+         BRIGHTGREEN = ESCAPE.CODE : '[32;1m'
+         BRIGHTYELLOW = ESCAPE.CODE : '[33;1m'
+         BRIGHTBLUE = ESCAPE.CODE : '[34;1m'
+         BRIGHTMAGENTA = ESCAPE.CODE : '[35;1m'
+         BRIGHTCYAN = ESCAPE.CODE : '[36;1m'
+         BRIGHTWHITE = ESCAPE.CODE : '[37;1m'
       END
+*
+      EQU NSH.COLORS.ATTRIBUTE TO 1
+      EQU NSH.COMMAND.WORDS.ATTRIBUTE TO 2
+      EQU NSH.COMMANDS.ATTRIBUTE TO 3
 *
       NSH.COLORS = ''
 *
@@ -368,6 +393,9 @@ $ENDIF
             END
           NEXT I
       END
+*
+      USER.COMMAND.WORDS = NSH.PROFILE<NSH.COMMAND.WORDS.ATTRIBUTE>
+      USER.COMMANDS = NSH.PROFILE<NSH.COMMANDS.ATTRIBUTE>
 *
       TERMINAL.POS = 1
 *
@@ -419,6 +447,14 @@ $ENDIF
 *
       TAB.PRESSED = FALSE
 *
+      IPADDR = ''
+      COMMAND = "hostname -I | cut -d' ' -f1"
+      EXECUTE 'SH -c "' : COMMAND : '"' CAPTURING IPADDR
+      IPADDR = IPADDR<1>
+      IP.X.POS = 132 - LEN(IPADDR) - 1
+*
+      COMMAND = ''
+*
       PRINT.SHELL.PROMPT = TRUE
 *
       LINUX.COMMAND.MODE = FALSE
@@ -453,6 +489,7 @@ $ENDIF
                RAW.SHELL.PROMPT = RAW.SERIES.PROMPT
             END
 *
+            PRINT @(IP.X.POS,66) : IPADDR
             PRINT BOTTOM :
             PRINT SHELL.PROMPT :
 *
@@ -1929,6 +1966,13 @@ $ENDIF
             PRINT 'NSH: Version ' : VERSION
 *
          END ELSE
+            LOCATE(VERB,USER.COMMAND.WORDS,1;COMMAND.POS) THEN
+                SERIES = USER.COMMANDS<COMMAND.POS>
+                IF SERIES[1,1] = '!' THEN
+                    SERIES = 'SH -c ' : '"' : SERIES[2,9999] : '"'
+                END
+            END
+*
             EXECUTE SERIES
          END
 *
