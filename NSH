@@ -452,6 +452,7 @@ $ENDIF
       EXECUTE 'SH -c "' : COMMAND : '"' CAPTURING IPADDR
       IPADDR = IPADDR<1>
       IP.X.POS = 132 - LEN(IPADDR) - 1
+      IP.Y.POS = 66 - 1
 *
       COMMAND = ''
 *
@@ -489,7 +490,7 @@ $ENDIF
                RAW.SHELL.PROMPT = RAW.SERIES.PROMPT
             END
 *
-            PRINT @(IP.X.POS,66) : IPADDR
+            PRINT @(IP.X.POS,IP.Y.POS) : IPADDR
             PRINT BOTTOM :
             PRINT SHELL.PROMPT :
 *
@@ -1967,7 +1968,7 @@ $ENDIF
 *
          END ELSE
             LOCATE(VERB,USER.COMMAND.WORDS,1;COMMAND.POS) THEN
-                SERIES = USER.COMMANDS<COMMAND.POS>
+                SERIES = USER.COMMANDS<1,COMMAND.POS>
                 IF SERIES[1,1] = '!' THEN
                     SERIES = 'SH -c ' : '"' : SERIES[2,9999] : '"'
                 END
@@ -1994,3 +1995,4 @@ $ENDIF
 * END OF PROGRAM.
 *
    END
+
