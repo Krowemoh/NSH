@@ -43,7 +43,7 @@ $DEFINE PLATFORM.LINUX
 *
       MAJOR.VERSION = '0'
       MINOR.VERSION = '6'
-      PATCH.VERSION = '5'
+      PATCH.VERSION = '6'
 *
       VERSION = MAJOR.VERSION : '.' : MINOR.VERSION : '.' : PATCH.VERSION
 *
@@ -60,6 +60,13 @@ $DEFINE PLATFORM.LINUX
 *
       EQU TRUE TO 1
       EQU FALSE TO 0
+*
+* NSH FLAGS
+*
+      SHOW.IP.FLAG = FALSE
+      IF INDEX(@SENTENCE,"--SHOW-IP",1) # 0 THEN
+          SHOW.IP.FLAG = TRUE
+      END 
 *
       STARTUP.MATRIX = ''
       STARTUP.MATRIX<-1> = 'PQ'
@@ -149,10 +156,10 @@ $ENDIF
             OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
 $IFDEF PLATFORM.LINUX
 $IFDEF DATABASE.UV
-               EXECUTE 'SH -c "mkdir /tmp/.nsh/"'
+               EXECUTE 'SH -c "mkdir -p /tmp/.nsh/"'
 $ENDIF
-$IFDEF DATABASE.UV
-               EXECUTE '!mkdir /tmp/.nsh/'
+$IFDEF DATABASE.D3
+               EXECUTE '!mkdir -p /tmp/.nsh/'
 $ENDIF
 $ENDIF
 $IFDEF PLATFORM.WINDOWS
@@ -449,9 +456,16 @@ $ENDIF
       TAB.PRESSED = FALSE
 *
       IPADDR = ''
+$IFDEF PLATFORM.LINUX
       COMMAND = "hostname -I | cut -d' ' -f1"
+$IFDEF DATABASE.UV
       EXECUTE 'SH -c "' : COMMAND : '"' CAPTURING IPADDR
+$ENDIF
+$IFDEF DATABASE.D3
+      EXECUTE '! ' : COMMAND CAPTURING IPADDR
+$ENDIF
       IPADDR = IPADDR<1>
+$ENDIF
       IP.X.POS = 132 - LEN(IPADDR) - 1
       IP.Y.POS = 66 - 1
 *
@@ -491,7 +505,10 @@ $ENDIF
                RAW.SHELL.PROMPT = RAW.SERIES.PROMPT
             END
 *
-            PRINT @(IP.X.POS,IP.Y.POS) : IPADDR
+            IF SHOW.IP.FLAG THEN
+                PRINT @(IP.X.POS,IP.Y.POS) : IPADDR
+            END
+*
             PRINT BOTTOM :
             PRINT SHELL.PROMPT :
 *
