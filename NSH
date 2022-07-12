@@ -1924,7 +1924,7 @@ $ENDIF
 *
                IF PRINT.COMMAND[1,5] = 'OCONV' THEN
                   PRINT OCONV(VALUE,CONV)
-               END ELSE
+               END ELSE IF PRINT.COMMAND[1,5] = 'ICONV' THEN
                   PRINT ICONV(VALUE,CONV)
                END
 *
