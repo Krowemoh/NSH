@@ -207,6 +207,7 @@ $ENDIF
 *
 * CLEARING LINES
 *
+      CLEAR.SCREEN = @(-1)
       CLEAR.REST.OF.SCREEN = @(-3)
       CLEAR.REST.OF.LINE = @(-4)
       CLEAR.LINE = @(0) : CLEAR.REST.OF.LINE
@@ -1982,6 +1983,7 @@ $ENDIF
                   END
                NEXT I
 *
+               ERROR.TRIGGERED = FALSE
                LOOP WHILE TRUE DO
                   SLEEP 1
 *
@@ -2010,8 +2012,14 @@ $ENDIF
                         EXECUTE 'BASIC ' : FILENAMES<I> : ' ' : RECORD.IDS<I> CAPTURING RESULTS
 *
                         IF RESULTS<3> = '' THEN
-                           PRINT OCONV(TIME(),'MTS') : ': ' : RESULTS<1>
+                            IF ERROR.TRIGGERED THEN
+                                PRINT CLEAR.SCREEN :
+                                ERROR.TRIGGERED = FALSE
+                            END
+                            PRINT OCONV(TIME(),'MTS') : ': ' : RESULTS<1>
                         END ELSE
+                            ERROR.TRIGGERED = TRUE
+                           PRINT CLEAR.SCREEN :
                            PRINT OCONV(TIME(),'MTS') : ': ' :
                            PRINT 'Error -----------------'
                            PRINT
