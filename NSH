@@ -43,11 +43,7 @@
 *
 * VERSION
 *
-    MAJOR.VERSION = '0'
-    MINOR.VERSION = '6'
-    PATCH.VERSION = '7'
-*
-    VERSION = MAJOR.VERSION : '.' : MINOR.VERSION : '.' : PATCH.VERSION
+    VERSION = '6'
 *
 * NSH MASTER URL
 *
@@ -258,14 +254,14 @@
         END
     $ENDIF
 *
-    $IFDEF  DATABASE.UV
+    $IFDEF DATABASE.UV
         UP.ARROW = 'OA'
         DOWN.ARROW = 'OB'
         LEFT.ARROW = 'OD'
         RIGHT.ARROW = 'OC'
     $ENDIF
 *
-    $IFDEF  DATABASE.D3
+    $IFDEF DATABASE.D3
         UP.ARROW = '[A'
         DOWN.ARROW = '[B'
         LEFT.ARROW = '[D'
@@ -894,6 +890,23 @@
                         $IFDEF DATABASE.UV
                             PRINT @(-20) :
                         $ENDIF
+                    END ELSE
+                        IF POSSIBLE.COMMAND # '' THEN
+                            COMMAND = POSSIBLE.COMMAND
+                            POSSIBLE.COMMAND = ''
+*
+                            PRINT BOTTOM :
+                            PRINT SHELL.PROMPT :
+                            PRINT COMMAND :
+                            PRINT CLEAR.REST.OF.SCREEN :
+*
+                            PRINT.SHELL.PROMPT = FALSE
+                            TRUE.HISTORY.STACK.POINTER = 0 ;
+                            CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+                        END
+*
+                        CONTINUE
+*
                     END
 *
                     PRINT.SHELL.PROMPT = FALSE
@@ -1767,7 +1780,7 @@
 *
                 CASE NSHUP.COMMAND = 'CHECK' OR NSHUP.COMMAND = 'UPDATE'
                     $IFDEF PLATFORM.LINUX
-                        NSH.CHECK.COMMAND = 'curl -s ' : NSH.URL : ' | grep "MAJOR.VERSION =" -A2'
+                        NSH.CHECK.COMMAND = 'curl -s ' : NSH.URL : ' | grep "VERSION =" -A2'
                         EXECUTE "SH -c '" : NSH.CHECK.COMMAND : "'" CAPTURING RESULTS
                     $ENDIF
                     $IFDEF PLATFORM.WINDOWS
@@ -1776,15 +1789,11 @@
                         CONTINUE
                     $ENDIF
 *
-                    REMOTE.MAJOR.VERSION = FIELD(RESULTS<1>,"'",2)
-                    REMOTE.MINOR.VERSION = FIELD(RESULTS<2>,"'",2)
-                    REMOTE.PATCH.VERSION = FIELD(RESULTS<3>,"'",2)
-*
-                    REMOTE.VERSION = REMOTE.MAJOR.VERSION : '.' : REMOTE.MINOR.VERSION : '.' : REMOTE.PATCH.VERSION
+                    REMOTE.VERSION = FIELD(RESULTS<1>,"'",2)
 *
                     PRINT 'NSH: Current version: ' : VERSION
 *
-                    IF REMOTE.MAJOR.VERSION > MAJOR.VERSION OR REMOTE.MINOR.VERSION > MINOR.VERSION OR REMOTE.PATCH.VERSION > PATCH.VERSION THEN
+                    IF REMOTE.VERSION > VERSION THEN
                         PRINT 'NSH: Update to ' : REMOTE.VERSION : ' available.'
 *
                         IF NSHUP.COMMAND # 'UPDATE' THEN
