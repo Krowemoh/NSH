@@ -732,7 +732,6 @@
                     COMMAND = COMMAND : CHR
                     CURSOR.POSITION = CURSOR.POSITION + 1
 *
-                    $IFDEF DATABASE.UV
                         IF TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color' THEN
                             VERB = FIELD(COMMAND,' ',1)
                             POSSIBLE.COMMAND = ''
@@ -784,7 +783,6 @@
                                 PRINT @(CURSOR.POSITION) :
                             END
                         END
-                    $ENDIF
 *
                 END ELSE
                     COMMAND = COMMAND[1,CURSOR.POSITION.IN.COMMAND] : CHR : COMMAND[CURSOR.POSITION.IN.COMMAND+1,9999]
@@ -1217,7 +1215,7 @@
                                 PRINT SHELL.PROMPT :
                                 PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
 *
-                                IF VERB = 'MAN' OR VERB = 'RUN' OR VERB = 'FORMAT' OR FILE.LOOKUP = 'KP' THEN
+                                IF VERB = 'MAN' OR VERB = 'RUN' OR VERB = 'FORMAT' OR FILE.LOOKUP = 'KP' OR VERB = 'EVA' THEN
                                     COMMAND = CURRENT.COMMAND : ITEM.ID
                                 END ELSE
                                     COMMAND = CURRENT.COMMAND : '"' : ITEM.ID : '"'
