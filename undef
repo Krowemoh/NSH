@@ -14,13 +14,13 @@ while counter < len(lines):
     line = lines[counter]
     counter = counter + 1
 
-    if "$DEFINE" in line:
+    if "$DEFINE" in line and "'" not in line  and '"' not in line:
         line = line.strip()
         _, symbol = line.split(" ")
         symbolTable[symbol] = True
         continue
 
-    if "$IFDEF" in line:
+    if "$IFDEF" in line and "'" not in line  and '"' not in line:
         line = line.strip()
         _, symbol = line.split(" ")
         if symbol in symbolTable:
@@ -28,15 +28,15 @@ while counter < len(lines):
         line = lines[counter]
         stack = 1
         while stack != 0:
-            if "$IFDEF" in line:
+            if "$IFDEF" in line and "'" not in line  and '"' not in line:
                 stack = stack + 1
-            if "$ENDIF" in line:
+            if "$ENDIF" in line and "'" not in line  and '"' not in line:
                 stack = stack - 1
             counter = counter + 1
             line = lines[counter]
         continue
 
-    if "$ENDIF" in line:
+    if "$ENDIF" in line and "'" not in line  and '"' not in line:
         continue
 
     print(line[:-1])
