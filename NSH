@@ -1,4 +1,7 @@
 *
+    GIT.FILENAME = 'NSH'
+    GIT.REPO = 'https://github.com/Krowemoh/nsh.git'
+*
 * COMPILER DIRECTIVES
 *
     $DEFINE DATABASE.UV
@@ -434,7 +437,6 @@
         VALID.VERBS<-1> = 'TCL'
         VALID.VERBS<-1> = 'TIMECONV'
         VALID.VERBS<-1> = 'VERSION'
-        VALID.VERBS<-1> = 'WATCH'
     $ENDIF
 *
     $IFDEF DATABASE.D3
@@ -732,57 +734,57 @@
                     COMMAND = COMMAND : CHR
                     CURSOR.POSITION = CURSOR.POSITION + 1
 *
-                        IF TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color' THEN
-                            VERB = FIELD(COMMAND,' ',1)
-                            POSSIBLE.COMMAND = ''
+                    IF TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color' THEN
+                        VERB = FIELD(COMMAND,' ',1)
+                        POSSIBLE.COMMAND = ''
 *
-                            STACK.POINTER = 0
-                            HISTORY.LENGTH = DCOUNT(COMMAND.STACK<HISTORY>, @VM)
+                        STACK.POINTER = 0
+                        HISTORY.LENGTH = DCOUNT(COMMAND.STACK<HISTORY>, @VM)
 *
-                            IF STACK.POINTER < HISTORY.LENGTH THEN
-                                STACK.POINTER = STACK.POINTER + 1
-                                IF COMMAND # '' THEN
-                                    SEARCH.COMMAND = COMMAND
-                                END
-                                IF SEARCH.COMMAND # '' THEN
-                                    PREVIOUS.COMMAND = COMMAND
-                                    LOOP
-                                        STACK.COMMAND = COMMAND.STACK<HISTORY, STACK.POINTER>
-                                    UNTIL (STACK.POINTER >= HISTORY.LENGTH OR INDEX(STACK.COMMAND,SEARCH.COMMAND,1) = 1) DO
-                                        STACK.POINTER = STACK.POINTER + 1
-                                    REPEAT
-                                END
-                                POSSIBLE.COMMAND = COMMAND.STACK<HISTORY, STACK.POINTER>
+                        IF STACK.POINTER < HISTORY.LENGTH THEN
+                            STACK.POINTER = STACK.POINTER + 1
+                            IF COMMAND # '' THEN
+                                SEARCH.COMMAND = COMMAND
                             END
+                            IF SEARCH.COMMAND # '' THEN
+                                PREVIOUS.COMMAND = COMMAND
+                                LOOP
+                                    STACK.COMMAND = COMMAND.STACK<HISTORY, STACK.POINTER>
+                                UNTIL (STACK.POINTER >= HISTORY.LENGTH OR INDEX(STACK.COMMAND,SEARCH.COMMAND,1) = 1) DO
+                                    STACK.POINTER = STACK.POINTER + 1
+                                REPEAT
+                            END
+                            POSSIBLE.COMMAND = COMMAND.STACK<HISTORY, STACK.POINTER>
+                        END
 *
-                            CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+                        CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
-                            LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
+                        LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
+                            VALID.VERB = TRUE
+                        END ELSE
+                            IF COMMAND[1,1] = '.' THEN
                                 VALID.VERB = TRUE
                             END ELSE
-                                IF COMMAND[1,1] = '.' THEN
-                                    VALID.VERB = TRUE
-                                END ELSE
-                                    VALID.VERB = FALSE
-                                END
-                            END
-*
-                            IF VALID.VERB THEN
-                                PRINT BOTTOM :
-                                PRINT SHELL.PROMPT :
-                                PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
-                                PRINT NSH.COLORS<SUGGESTION.COLOR> : POSSIBLE.COMMAND[LEN(COMMAND)+1,9999] :
-                                PRINT CLEAR.REST.OF.SCREEN :
-                                PRINT @(CURSOR.POSITION) :
-                            END ELSE
-                                PRINT BOTTOM :
-                                PRINT SHELL.PROMPT :
-                                PRINT NSH.COLORS<ERROR.COLOR> : COMMAND :
-                                PRINT NSH.COLORS<SUGGESTION.COLOR> : POSSIBLE.COMMAND[LEN(COMMAND)+1,9999] :
-                                PRINT CLEAR.REST.OF.SCREEN :
-                                PRINT @(CURSOR.POSITION) :
+                                VALID.VERB = FALSE
                             END
                         END
+*
+                        IF VALID.VERB THEN
+                            PRINT BOTTOM :
+                            PRINT SHELL.PROMPT :
+                            PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
+                            PRINT NSH.COLORS<SUGGESTION.COLOR> : POSSIBLE.COMMAND[LEN(COMMAND)+1,9999] :
+                            PRINT CLEAR.REST.OF.SCREEN :
+                            PRINT @(CURSOR.POSITION) :
+                        END ELSE
+                            PRINT BOTTOM :
+                            PRINT SHELL.PROMPT :
+                            PRINT NSH.COLORS<ERROR.COLOR> : COMMAND :
+                            PRINT NSH.COLORS<SUGGESTION.COLOR> : POSSIBLE.COMMAND[LEN(COMMAND)+1,9999] :
+                            PRINT CLEAR.REST.OF.SCREEN :
+                            PRINT @(CURSOR.POSITION) :
+                        END
+                    END
 *
                 END ELSE
                     COMMAND = COMMAND[1,CURSOR.POSITION.IN.COMMAND] : CHR : COMMAND[CURSOR.POSITION.IN.COMMAND+1,9999]
@@ -1924,92 +1926,6 @@
                 PRINT TIME()
             END ELSE
                 PRINT 'NSH: Invalid print command.'
-            END
-*
-        END ELSE IF VERB = 'WATCH' THEN
-            COMMAND = COMMAND[7,999]
-*
-            IF COMMAND # '' THEN
-                PRINT 'Started watch of: ' : COMMAND
-*
-                RECORD.IDS = ''
-                ORIGINAL.RECORDS = ''
-                FILENAMES = ''
-*
-                FOR I = 1 TO DCOUNT(COMMAND,',')
-                    FILENAME = FIELD(TRIM(FIELD(COMMAND,',',I)),' ',1)
-                    RECORD.ID = FIELD(TRIM(FIELD(COMMAND,',',I)),' ',2)
-*
-                    OPEN '',FILENAME TO FILE THEN
-                        READ RECORD FROM FILE,RECORD.ID ELSE RECORD = ''
-*
-                        RECORD.IDS<I> = RECORD.ID
-                        FILENAMES<I> = FILENAME
-*
-                        $IFDEF DATABASE.UV
-                            LOWERED.RECORD = LOWER(ORIGINAL.RECORDS<I>)
-                        $ENDIF
-*
-                        $IFDEF DATABASE.D3
-                            LOWERED.RECORD = ORIGINAL.RECORDS<I>
-                            CONVERT @AM:@VM:@SVM:@TM TO @VM:@SVM:@TM:@STM IN LOWERED.RECORD
-                        $ENDIF
-*
-                        ORIGINAL.RECORDS<I> = LOWERED.RECORD
-*
-                    END ELSE
-                        PRINT 'Unable to open file: ' : FILENAME
-                    END
-                NEXT I
-*
-                ERROR.TRIGGERED = FALSE
-                LOOP WHILE TRUE DO
-                    SLEEP 1
-*
-                    FOR I = 1 TO DCOUNT(RECORD.IDS,@AM)
-                        IF FILENAMES<I> = '' THEN
-                            CONTINUE
-                        END
-*
-                        OPEN '',FILENAME TO FILE ELSE
-                            CONTINUE
-                        END
-*
-                        READ RECORD FROM FILE,RECORD.IDS<I> ELSE RECORD = ''
-*
-                        $IFDEF DATABASE.UV
-                            LOWERED.RECORD = LOWER(RECORD)
-                        $ENDIF
-*
-                        $IFDEF DATABASE.D3
-                            LOWERED.RECORD = RECORD
-                            CONVERT @AM:@VM:@SVM:@TM TO @VM:@SVM:@TM:@STM IN LOWERED.RECORD
-                        $ENDIF
-*
-                        IF ORIGINAL.RECORDS<I> # LOWERED.RECORD THEN
-                            ORIGINAL.RECORDS<I> = LOWERED.RECORD
-                            EXECUTE 'BASIC ' : FILENAMES<I> : ' ' : RECORD.IDS<I> CAPTURING RESULTS
-*
-                            IF RESULTS<3> = '' THEN
-                                IF ERROR.TRIGGERED THEN
-                                    PRINT CLEAR.SCREEN :
-                                    ERROR.TRIGGERED = FALSE
-                                END
-                                PRINT OCONV(TIME(),'MTS') : ': ' : RESULTS<1>
-                            END ELSE
-                                ERROR.TRIGGERED = TRUE
-                                PRINT CLEAR.SCREEN :
-                                PRINT OCONV(TIME(),'MTS') : ': ' :
-                                PRINT 'Error -----------------'
-                                PRINT
-                                FOR J = 1 TO DCOUNT(RESULTS,@AM)
-                                    PRINT RESULTS<J>
-                                NEXT J
-                            END
-                        END
-                    NEXT I
-*
-                REPEAT
             END
 *
         END ELSE IF VERB = 'VERSION' THEN
