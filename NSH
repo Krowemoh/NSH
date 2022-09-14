@@ -46,7 +46,7 @@
 *
 * VERSION
 *
-    VERSION = '6'
+    VERSION = '7'
 *
 * NSH MASTER URL
 *
