@@ -876,11 +876,17 @@
                 CASE ESCAPE.SEQUENCE = LEFT.ARROW
                     IF CURSOR.POSITION > LEN(RAW.SHELL.PROMPT) THEN
                         CURSOR.POSITION = CURSOR.POSITION - 1
-                        PRINT @(CURSOR.POSITION, 66) :
-                        $IFDEF DATABASE.UV
-                            PRINT @(-20) :
-                        $ENDIF
                     END
+*
+                    
+                    PRINT BOTTOM :
+                    PRINT SHELL.PROMPT :
+                    PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+*
+                    PRINT @(CURSOR.POSITION, 66) :
+                    $IFDEF DATABASE.UV
+                        PRINT @(-20) :
+                    $ENDIF
 *
                     PRINT.SHELL.PROMPT = FALSE
                     CONTINUE
@@ -888,7 +894,6 @@
                 CASE ESCAPE.SEQUENCE = RIGHT.ARROW
                     IF CURSOR.POSITION < (LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)) THEN
                         CURSOR.POSITION = CURSOR.POSITION + 1
-                        PRINT @(CURSOR.POSITION, 66) :
                         $IFDEF DATABASE.UV
                             PRINT @(-20) :
                         $ENDIF
@@ -907,6 +912,15 @@
                             CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                         END
                     END
+*
+                    PRINT BOTTOM :
+                    PRINT SHELL.PROMPT :
+                    PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+*
+                    PRINT @(CURSOR.POSITION, 66) :
+                    $IFDEF DATABASE.UV
+                        PRINT @(-20) :
+                    $ENDIF
 *
                     PRINT.SHELL.PROMPT = FALSE
                     CONTINUE
