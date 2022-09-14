@@ -906,9 +906,6 @@
                             TRUE.HISTORY.STACK.POINTER = 0 ;
                             CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                         END
-*
-                        CONTINUE
-*
                     END
 *
                     PRINT.SHELL.PROMPT = FALSE
