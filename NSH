@@ -741,7 +741,7 @@
 *
                         STACK.POINTER = 0
                         HISTORY.LENGTH = DCOUNT(COMMAND.STACK<HISTORY>, @VM)
-                        SEARCH.LIMIT = 1000
+                        SEARCH.LIMIT = 1001
 *
                         IF STACK.POINTER < HISTORY.LENGTH THEN
                             STACK.POINTER = STACK.POINTER + 1
@@ -757,6 +757,10 @@
                                 REPEAT
                             END
                             POSSIBLE.COMMAND = COMMAND.STACK<HISTORY, STACK.POINTER>
+                        END
+*
+                        IF STACK.POINTER = 1001 THEN
+                            POSSIBLE.COMMAND = ''
                         END
 *
                         CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
