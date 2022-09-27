@@ -423,26 +423,27 @@
         END
         SELECT VOC.FILE
         READLIST VALID.VERBS ELSE VALID.VERBS = ''
-*
-        VALID.VERBS<-1> = 'CLEAR'
-        VALID.VERBS<-1> = 'CLS'
-        VALID.VERBS<-1> = 'DATECONV'
-        VALID.VERBS<-1> = 'EXIT'
-        VALID.VERBS<-1> = 'HISTORY'
-        VALID.VERBS<-1> = 'MAN'
-        VALID.VERBS<-1> = 'NSHUP'
-        VALID.VERBS<-1> = 'PRINT'
-        VALID.VERBS<-1> = 'Q'
-        VALID.VERBS<-1> = 'SEARCH'
-        VALID.VERBS<-1> = 'TCL'
-        VALID.VERBS<-1> = 'TIMECONV'
-        VALID.VERBS<-1> = 'VERSION'
-        VALID.VERBS<-1> = 'WATCH'
     $ENDIF
 *
     $IFDEF DATABASE.D3
         VALID.VERBS = ''
     $ENDIF
+*
+    VALID.VERBS<-1> = 'CLEAR'
+    VALID.VERBS<-1> = 'CLS'
+    VALID.VERBS<-1> = 'DATECONV'
+    VALID.VERBS<-1> = 'EXIT'
+    VALID.VERBS<-1> = 'HISTORY'
+    VALID.VERBS<-1> = 'MAN'
+    VALID.VERBS<-1> = 'NSHUP'
+    VALID.VERBS<-1> = 'PRINT'
+    VALID.VERBS<-1> = 'Q'
+    VALID.VERBS<-1> = 'SEARCH'
+    VALID.VERBS<-1> = 'TCL'
+    VALID.VERBS<-1> = 'TIMECONV'
+    VALID.VERBS<-1> = 'VERSION'
+    VALID.VERBS<-1> = 'WATCH'
+    VALID.VERBS<-1> = 'FA'
 *
     SEARCH.COMMAND = ''
     USER.INPUT = TRUE
@@ -1750,6 +1751,21 @@
             EXECUTE SERIES CAPTURING RESULTS
             PRINT
             PRINT RESULTS<4>
+*
+        END ELSE IF VERB = 'FA' THEN
+            FA.FILE = FIELD(COMMAND,' ',2)
+            FA.SEARCH.STRING = FIELD(COMMAND,' ',3)
+*
+            IF FA.FILE # '' THEN
+                FA.COMMAND = 'LIST DICT ' : FA.FILE
+                FA.COMMAND = FA.COMMAND : ' WITH @ID = "[' : FA.SEARCH.STRING  : ']"'
+                FA.COMMAND = FA.COMMAND : ' AND WITH F1 = "A"'
+                FA.COMMAND = FA.COMMAND : ' BY A/AMC A/AMC LONG-ITEM-NAME ID-SUPP'
+*
+                EXECUTE FA.COMMAND
+            END ELSE
+                PRINT 'No file specified.'
+            END
 *
         END ELSE IF VERB = 'DATECONV' THEN
             LOOP
