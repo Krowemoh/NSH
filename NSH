@@ -7,40 +7,7 @@
     $DEFINE DATABASE.UV
     $DEFINE PLATFORM.LINUX
 *
-*ASI********************************************************************
-*                                                                      *
-* Create Date  Req#  Who  Description                                  *
-* 23 OCT 2021  N/A   NT   NovaShell v0.1                               *
-* 07 NOV 2021  N/A   NT   NovaShell v0.2                               *
-* 24 MAR 2022  N/A   NT   NovaShell v0.3                               *
-* 31 MAY 2022  N/A   NT   NovaShell v0.4                               *
-* 20 JUN 2022  N/A   NT   NovaShell v0.5                               *
-* 24 JUN 2022  N/A   NT   NovaShell v0.6                               *
-*                                                                      *
-************************************************************************
-* Special Instructions                                                 *
-*                                                                      *
-************************************************************************
-* Change History                                                       *
-*                                                                      *
-* Change Date  Req#  Who  Description                                  *
-* 07 NOV 2021  N/A   NT   Added Dynamic Terminal Escape Codes          *
-* 24 MAR 2022  N/A   NT   Add History Search with Arrow Keys           *
-*                         Enhance Autocomplete to Complete Substring   *
-*                         Don't Assume Files are Opened Successfully   *
-*                         Account Specific History Files               *
-*                         Auto Create NSH-HISTORY-FILE in Accounts     *
-*                         Clean Up SEARCH                              *
-*                         Allow multiple .X Command Numbers            *
-* 31 MAY 2022  N/A   NT   Move NSH-HISTORY-FILE to /tmp/               *
-*                         Remove Account Specific History              *
-* 10 JUN 2022  N/A   NT   Add Support for D3 and Windows               *
-* 20 JUN 2022  N/A   NT   Add a date and time conversion utility       *
-* 20 JUN 2022  N/A   NT   D3 - Breaking Change - Search = FIND         *
-*                         You cannot use the native search in D3       *
-* 24 JUN 2022  N/A   NT   Added color support - xterm                  *
-*                                                                      *
-************************************************************************
+* SET TERMINAL TYPE
 *
     EXECUTE 'TERM xterm'
 *
