@@ -447,7 +447,7 @@
 *
     SEARCH.COMMAND = ''
     USER.INPUT = TRUE
-    TRUE.HISTORY.STACK.POINTER = 0
+    HISTORY.STACK.POINTER = 0
 *
     SERIES.VERBS = ''
     SERIES.VERBS<1,-1> = 'SELECT'
@@ -551,7 +551,7 @@
                     PRINT NSH.COLORS<FOREGROUND.COLOR> :
                     LINUX.COMMAND.MODE = FALSE
                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT)
-                    TRUE.HISTORY.STACK.POINTER = 0 ;
+                    HISTORY.STACK.POINTER = 0 ;
                     SEARCH.COMMAND = ''
                     USER.INPUT = TRUE
                     EXIT
@@ -574,7 +574,7 @@
                     PRINT SHELL.PROMPT :
                     PRINT CLEAR.REST.OF.SCREEN :
                     PRINT.SHELL.PROMPT = FALSE
-                    TRUE.HISTORY.STACK.POINTER = 0 ;
+                    HISTORY.STACK.POINTER = 0 ;
                     COMMAND = ''
                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                     CONTINUE
@@ -590,7 +590,7 @@
                         PRINT CLEAR.REST.OF.SCREEN :
 *
                         PRINT.SHELL.PROMPT = FALSE
-                        TRUE.HISTORY.STACK.POINTER = 0 ;
+                        HISTORY.STACK.POINTER = 0 ;
                         CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                     END
 *
@@ -599,7 +599,7 @@
                 CASE ASCII.CODE = SEQ(KEY.BACKSPACE) OR ASCII.CODE = SEQ(KEY.DELETE)
                     COMMAND.LENGTH = LEN(COMMAND)
 *
-                    TRUE.HISTORY.STACK.POINTER = 0 ;
+                    HISTORY.STACK.POINTER = 0 ;
                     SEARCH.COMMAND = ''
                     USER.INPUT = TRUE
 *
@@ -811,29 +811,29 @@
         PRINT.SHELL.PROMPT = TRUE
 *
         COMMAND.STACK.LENGTH = DCOUNT(COMMAND.STACK<HISTORY>, @VM)
-        TRUE.HISTORY.LENGTH = DCOUNT(COMMAND.STACK<TRUE.HISTORY>, @VM)
+        TRUE.HISTORY.LENGTH = DCOUNT(COMMAND.STACK<HISTORY>, @VM)
 *
 * ARROW KEY MANIPULATION
 *
         IF ESCAPE.SEQUENCE # '' THEN
             BEGIN CASE
                 CASE ESCAPE.SEQUENCE = UP.ARROW
-                    IF TRUE.HISTORY.STACK.POINTER < TRUE.HISTORY.LENGTH THEN
-                        TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER + 1
+                    IF HISTORY.STACK.POINTER < TRUE.HISTORY.LENGTH THEN
+                        HISTORY.STACK.POINTER = HISTORY.STACK.POINTER + 1
                         IF COMMAND # '' AND USER.INPUT = TRUE THEN
                             SEARCH.COMMAND = COMMAND
                         END
                         IF SEARCH.COMMAND # '' THEN
                             PREVIOUS.COMMAND = COMMAND
                             LOOP
-                                COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER,1>
-                            UNTIL (TRUE.HISTORY.STACK.POINTER >= TRUE.HISTORY.LENGTH OR INDEX(COMMAND,SEARCH.COMMAND,1) # 0) AND PREVIOUS.COMMAND # COMMAND DO
-                                TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER + 1
+                                COMMAND = COMMAND.STACK<HISTORY, HISTORY.STACK.POINTER,1>
+                            UNTIL (HISTORY.STACK.POINTER >= TRUE.HISTORY.LENGTH OR INDEX(COMMAND,SEARCH.COMMAND,1) # 0) AND PREVIOUS.COMMAND # COMMAND DO
+                                HISTORY.STACK.POINTER = HISTORY.STACK.POINTER + 1
                             REPEAT
                         END
                     END
 *
-                    COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER,1>
+                    COMMAND = COMMAND.STACK<HISTORY, HISTORY.STACK.POINTER,1>
                     USER.INPUT = FALSE
 *
                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
@@ -847,26 +847,26 @@
                     CONTINUE
 *
                 CASE ESCAPE.SEQUENCE = DOWN.ARROW
-                    IF TRUE.HISTORY.STACK.POINTER > 1 THEN
-                        TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER - 1
+                    IF HISTORY.STACK.POINTER > 1 THEN
+                        HISTORY.STACK.POINTER = HISTORY.STACK.POINTER - 1
                         IF COMMAND # '' AND USER.INPUT = TRUE THEN
                             SEARCH.COMMAND = COMMAND
                         END
                         IF SEARCH.COMMAND # '' THEN
                             PREVIOUS.COMMAND = COMMAND
                             LOOP
-                                COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER,1>
-                            UNTIL (TRUE.HISTORY.STACK.POINTER <= 0 OR INDEX(COMMAND,SEARCH.COMMAND,1) # 0) AND PREVIOUS.COMMAND # COMMAND DO
-                                TRUE.HISTORY.STACK.POINTER = TRUE.HISTORY.STACK.POINTER - 1
+                                COMMAND = COMMAND.STACK<HISTORY, HISTORY.STACK.POINTER,1>
+                            UNTIL (HISTORY.STACK.POINTER <= 0 OR INDEX(COMMAND,SEARCH.COMMAND,1) # 0) AND PREVIOUS.COMMAND # COMMAND DO
+                                HISTORY.STACK.POINTER = HISTORY.STACK.POINTER - 1
                             REPEAT
                         END
                     END
 *
-                    IF TRUE.HISTORY.STACK.POINTER <= 0 THEN
-                        TRUE.HISTORY.STACK.POINTER = 1
+                    IF HISTORY.STACK.POINTER <= 0 THEN
+                        HISTORY.STACK.POINTER = 1
                     END
 *
-                    COMMAND = COMMAND.STACK<TRUE.HISTORY, TRUE.HISTORY.STACK.POINTER,1>
+                    COMMAND = COMMAND.STACK<HISTORY, HISTORY.STACK.POINTER,1>
                     USER.INPUT = FALSE
                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
@@ -913,7 +913,7 @@
                             PRINT CLEAR.REST.OF.SCREEN :
 *
                             PRINT.SHELL.PROMPT = FALSE
-                            TRUE.HISTORY.STACK.POINTER = 0 ;
+                            HISTORY.STACK.POINTER = 0 ;
                             CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                         END
                     END
@@ -1291,14 +1291,6 @@
             CONTINUE
         END
 *
-* ADD COMMAND TO TRUE HISTORY
-*
-        COMMAND.HISTORY = COMMAND : @SVM : ACCOUNT.NAME : @SVM : DATE() : @SVM : TIME()
-        COMMAND.STACK<TRUE.HISTORY> = INSERT(COMMAND.STACK<TRUE.HISTORY>, 1, 1;COMMAND.HISTORY)
-        IF NSH.HISTORY.OPENED THEN
-            WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
-        END
-*
         ADD.TO.STACK = TRUE
 *
 * COMMAND STACK MANIPULATION
@@ -1609,11 +1601,11 @@
                     WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
                 END
 *
-                FOR I = DCOUNT(COMMAND.STACK<TRUE.HISTORY>,@VM) TO 1 STEP -1
-                    CMD = COMMAND.STACK<TRUE.HISTORY,I,1>
-                    CMD.ACCOUNT = COMMAND.STACK<TRUE.HISTORY,I,2>
-                    CMD.DATE = COMMAND.STACK<TRUE.HISTORY,I,3>
-                    CMD.TIME = COMMAND.STACK<TRUE.HISTORY,I,4>
+                FOR I = DCOUNT(COMMAND.STACK<HISTORY>,@VM) TO 1 STEP -1
+                    CMD = COMMAND.STACK<HISTORY,I,1>
+                    CMD.ACCOUNT = COMMAND.STACK<HISTORY,I,2>
+                    CMD.DATE = COMMAND.STACK<HISTORY,I,3>
+                    CMD.TIME = COMMAND.STACK<HISTORY,I,4>
 *
                     IF I < 10 THEN
                         PRINT '0' : I : ' ' : CMD
