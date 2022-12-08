@@ -13,7 +13,7 @@
 *
 * VERSION
 *
-    VERSION = '7'
+    VERSION = '8'
 *
 * NSH MASTER URL
 *
@@ -1934,6 +1934,8 @@
                     PRINT ICONV(VALUE,CONV)
                 END
 *
+            END ELSE IF PRINT.COMMAND = '@PATH' THEN
+                PRINT @PATH
             END ELSE IF PRINT.COMMAND = '@ACCOUNT' THEN
                 PRINT @ACCOUNT
             END ELSE IF PRINT.COMMAND = '@WHO' THEN
