@@ -925,10 +925,10 @@
                     CURRENT.COMMAND = COMMAND[1, LENGTH.UP.TO.WORD]
 *
                     $IFDEF DATABASE.UV
-                        STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "': WORD : ']"'
+                        STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "' : WORD : ']"'
                     $ENDIF
                     $IFDEF DATABASE.D3
-                        STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "': WORD : ']" WITH A2 = "FSI]"'
+                        STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "' : WORD : ']" WITH A2 = "FSI]"'
                     $ENDIF
 *
                     EXECUTE STATEMENT CAPTURING RESULTS
@@ -983,7 +983,7 @@
                     END
 *
                 CASE NEW.ACC.OPENED AND NUMBER.OF.ARGUMENTS = 1
-                    STATEMENT = 'SSELECT NEWACC = "': TRIM(COMMAND) : ']"'
+                    STATEMENT = 'SSELECT NEWACC = "' : TRIM(COMMAND) : ']"'
                     EXECUTE STATEMENT CAPTURING RESULTS
 *
                     RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
@@ -1044,10 +1044,10 @@
                     CURRENT.COMMAND = COMMAND[1, LENGTH.UP.TO.WORD]
 *
                     $IFDEF DATABASE.UV
-                        STATEMENT = 'SSELECT MD = "': WORD : ']" WITH F1 = "F]""Q]"'
+                        STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH F1 = "F]""Q]"'
                     $ENDIF
                     $IFDEF DATABASE.D3
-                        STATEMENT = 'SSELECT MD = "': WORD : ']" WITH A1 = "D]""Q]"'
+                        STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH A1 = "D]""Q]"'
                     $ENDIF
 *
                     EXECUTE STATEMENT CAPTURING RESULTS
@@ -1130,7 +1130,7 @@
                         CONTINUE
                     END
 *
-                    STATEMENT = 'SSELECT ' : FILE.LOOKUP : ' = "': WORD : ']"'
+                    STATEMENT = 'SSELECT ' : FILE.LOOKUP : ' = "' : WORD : ']"'
                     EXECUTE STATEMENT CAPTURING RESULTS
 *
                     RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
@@ -1139,7 +1139,7 @@
 *
                     BEGIN CASE
                         CASE RECORDS.SELECTED = 0
-                            STATEMENT = 'SSELECT DICT ' : FILE.LOOKUP : ' = "': WORD : ']"'
+                            STATEMENT = 'SSELECT DICT ' : FILE.LOOKUP : ' = "' : WORD : ']"'
                             EXECUTE STATEMENT CAPTURING RESULTS
 *
                             RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
@@ -1667,6 +1667,13 @@
             END
         END
 *
+        REDIRECT.FLAG = FALSE
+        IF INDEX(COMMAND,'>>',1) > 0 THEN
+            REDIRECT.FLAG = TRUE
+            REDIRECT.TO = TRIM(COMMAND[INDEX(COMMAND,'>>',1)+2,9999])
+            COMMAND = TRIM(COMMAND[1,INDEX(COMMAND,'>>',1)-1])
+        END
+*
         NUMBER.OF.COMMANDS = DCOUNT(COMMAND,@AM)
         FOR I = 1 TO NUMBER.OF.COMMANDS
             SERIES<-1> = COMMAND<I>
@@ -2051,7 +2058,35 @@
                 END
             END
 *
-            EXECUTE SERIES
+            IF REDIRECT.FLAG THEN
+                $IFDEF DATABASE.UV
+                    EXECUTE SERIES CAPTURING RESULTS
+*
+                    CONVERT @AM TO CHAR(10) IN RESULTS
+*
+                    FNAME = '/tmp/' : REDIRECT.TO
+*
+                    OPENSEQ FNAME TO FLAT.FILE ELSE
+                        CREATE FLAT.FILE ELSE
+                            PRINT 'Unable to Open/Create: ' : FNAME : ' - Press RETURN' :
+                        END
+                    END
+*
+                    WRITESEQ RESULTS ON FLAT.FILE ELSE NULL
+*
+                    WEOFSEQ FLAT.FILE
+                    FLUSH FLAT.FILE ELSE NULL
+                    CLOSESEQ FLAT.FILE
+                    PRINT 'NSH: Output saved to: ' : FNAME
+                $ENDIF
+*
+                $IFDEF DATABASE.D3
+                    PRINT 'NSH: Not available on D3.'
+                $ENDIF
+*
+            END ELSE
+                EXECUTE SERIES
+            END
         END
 *
         LOCATE(VERB,SERIES.VERBS,1;ANY.POS) ELSE
@@ -2072,3 +2107,4 @@
 * END OF PROGRAM.
 *
     END
+*
