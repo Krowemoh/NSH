@@ -1535,6 +1535,7 @@
                 PRINT RESET.COLOR :
                 COMMAND = ''
                 CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+                ECHO ON
                 EXIT
 *
             CASE COMMAND = 'Q' OR COMMAND = 'EXIT'
@@ -1692,6 +1693,8 @@
             $ENDIF
 *
         END ELSE IF VERB = 'SEARCH' THEN
+            ECHO OFF
+*
             $IFDEF DATABASE.UV
                 SERIES.LENGTH = DCOUNT(SERIES,@AM)
                 IF DCOUNT(COMMAND,' ') >= 3 THEN
@@ -1699,7 +1702,6 @@
                     SEARCH.FILE = FIELD(COMMAND,' ',2)
                     SEARCH.KEY = TRIM(COMMAND[INDEX(COMMAND,SEARCH.FILE,1)+LEN(SEARCH.FILE)+1,9999])
 *
-                    PRINT SEARCH.KEY
                     SERIES<SERIES.LENGTH> = 'SEARCH ' : SEARCH.FILE
                     IF SERIES.LENGTH = 2 THEN
                         DATA ''
@@ -1745,6 +1747,8 @@
                 EXECUTE SERIES
             $ENDIF
 *
+            ECHO ON
+*
         END ELSE IF VERB = 'SAVE-LIST' THEN
             EXECUTE SERIES CAPTURING RESULTS
             PRINT
@@ -1789,10 +1793,10 @@
             UNTIL TIME = '' OR OCONV(TIME,"MCU") = 'Q' DO
                 IF TIME = 'NOW' THEN
                     PRINT 'Time: ' : TIME()
-                    PRINT OCONV(TIME(),'MT')
+                    PRINT OCONV(TIME(),'MTS')
 *
                 END ELSE IF LEN(TIME) = 10 THEN
-                    PRINT OCONV(TIME+0,'MT')
+                    PRINT OCONV(TIME+0,'MTS')
 *
                 END ELSE
                     PRINT OCONV(TIME,'T')
