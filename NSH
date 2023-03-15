@@ -192,6 +192,7 @@
     EQU KEY.LINE.FEED TO CHAR(10)
     EQU KEY.CARRIAGE.RETURN TO CHAR(13)
     EQU KEY.EXCLAIMATION.MARK TO CHAR(33)
+    EQU KEY.FORWARD.SLASH TO CHAR(47)
     EQU KEY.DELETE TO CHAR(127)
 *
     EQU ESCAPE.CODE TO CHAR(27)
@@ -528,6 +529,15 @@
                     EXIT
 *
                 CASE ASCII.CODE = SEQ(KEY.EXCLAIMATION.MARK)
+                    LINUX.COMMAND.MODE = TRUE
+                    $IFDEF DATABASE.UV
+                        PRINT CHR :
+                    $ENDIF
+                    COMMAND = COMMAND : CHR
+                    CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+                    CONTINUE
+*
+                CASE ASCII.CODE = SEQ(KEY.FORWARD.SLASH)
                     LINUX.COMMAND.MODE = TRUE
                     $IFDEF DATABASE.UV
                         PRINT CHR :
@@ -957,6 +967,7 @@
                         PRINT
                         FIRST.WORD = ''
                         LAST.WORD = ''
+*
                         LOOP
                             READNEXT ITEM.ID ELSE ITEM.ID = ''
                         UNTIL ITEM.ID = '' DO
@@ -1042,17 +1053,41 @@
                     WORD = FIELD(COMMAND, ' ', 2)
                     LENGTH.UP.TO.WORD = COL1()
                     CURRENT.COMMAND = COMMAND[1, LENGTH.UP.TO.WORD]
+                    LIST.OF.FILES = ''
+                    CLEARSELECT 0
 *
-                    $IFDEF DATABASE.UV
-                        STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH F1 = "F]""Q]"'
-                    $ENDIF
-                    $IFDEF DATABASE.D3
-                        STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH A1 = "D]""Q]"'
-                    $ENDIF
+                    IF WORD[1,1] = '/' THEN
+                        SEARCH.PATH = WORD[1,INDEX(WORD,'/',COUNT(WORD,'/'))]
+                        SEARCH.WORD = WORD[LEN(SEARCH.PATH)+1,9999]
 *
-                    EXECUTE STATEMENT CAPTURING RESULTS
+                        STATEMENT = 'SH -c "ls -p ' : SEARCH.PATH : ' | grep ^' : SEARCH.WORD  : '"'
+                        EXECUTE STATEMENT CAPTURING RESULTS
+                        RECORDS.SELECTED = DCOUNT(RESULTS,@AM)
 *
-                    RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+                        LIST.OF.FILES = ''
+*
+                        FOR RESULT.CTR = 1 TO RECORDS.SELECTED
+                            RESULT.FILE = RESULTS<RESULT.CTR>
+                            IF RESULT.FILE # '' THEN
+                                LIST.OF.FILES<RESULT.CTR> = SEARCH.PATH : RESULT.FILE
+                            END
+                        NEXT RESULT.CTR
+*
+                        RECORDS.SELECTED = DCOUNT(LIST.OF.FILES,@AM)
+                        SELECT LIST.OF.FILES
+*
+                    END ELSE
+*
+                        $IFDEF DATABASE.UV
+                            STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH F1 = "F]""Q]"'
+                        $ENDIF
+                        $IFDEF DATABASE.D3
+                            STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH A1 = "D]""Q]"'
+                        $ENDIF
+*
+                        EXECUTE STATEMENT CAPTURING RESULTS
+                        RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+                    END
 *
                     IF RECORDS.SELECTED = 1 THEN
                         READNEXT ITEM.ID ELSE ITEM.ID = ''
@@ -1074,8 +1109,10 @@
 *
                     END ELSE
                         PRINT
+*
                         FIRST.WORD = ''
                         LAST.WORD = ''
+*
                         LOOP
                             READNEXT ITEM.ID ELSE ITEM.ID = ''
                         UNTIL ITEM.ID = '' DO
