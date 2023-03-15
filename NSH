@@ -13,7 +13,7 @@
 *
 * VERSION
 *
-    VERSION = '8'
+    VERSION = '9'
 *
 * NSH MASTER URL
 *
@@ -1836,7 +1836,7 @@
                     PRINT OCONV(TIME+0,'MTS')
 *
                 END ELSE
-                    PRINT OCONV(TIME,'T')
+                    PRINT ICONV(TIME,'MTS')
                 END
             REPEAT
 *
@@ -1981,26 +1981,31 @@
                 END ELSE IF PRINT.COMMAND[1,5] = 'ICONV' THEN
                     PRINT ICONV(VALUE,CONV)
                 END
-*
-            END ELSE IF PRINT.COMMAND = '@PATH' THEN
-                PRINT @PATH
-            END ELSE IF PRINT.COMMAND = '@ACCOUNT' THEN
-                PRINT @ACCOUNT
-            END ELSE IF PRINT.COMMAND = '@WHO' THEN
-                PRINT @WHO
-            END ELSE IF PRINT.COMMAND = '@LOGNAME' THEN
-                PRINT @LOGNAME
-            END ELSE IF PRINT.COMMAND = '@USER.NO' THEN
-                PRINT @USER.NO
-            END ELSE IF PRINT.COMMAND = '@TTY' THEN
-                PRINT @TTY
-            END ELSE IF PRINT.COMMAND = 'DATE()' THEN
-                PRINT DATE()
-            END ELSE IF PRINT.COMMAND = 'TIME()' THEN
-                PRINT TIME()
-            END ELSE
-                PRINT 'NSH: Invalid print command.'
             END
+*
+        END ELSE IF VERB = '@PATH' THEN
+            PRINT @PATH
+*
+        END ELSE IF VERB = '@ACCOUNT' THEN
+            PRINT @ACCOUNT
+*
+        END ELSE IF VERB = '@WHO' THEN
+            PRINT @WHO
+*
+        END ELSE IF VERB = '@LOGNAME' THEN
+            PRINT @LOGNAME
+*
+        END ELSE IF VERB = '@USER.NO' THEN
+            PRINT @USER.NO
+*
+        END ELSE IF VERB = '@TTY' THEN
+            PRINT @TTY
+*
+        END ELSE IF VERB = 'DATE()' THEN
+            PRINT DATE()
+*
+        END ELSE IF VERB = 'TIME()' THEN
+            PRINT TIME()
 *
         END ELSE IF VERB = 'WATCH' THEN
             COMMAND = COMMAND[7,999]
