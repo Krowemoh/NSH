@@ -7,7 +7,10 @@
     $DEFINE DATABASE.UV
     $DEFINE PLATFORM.LINUX
 *
-    EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM.TYPE
+    $IFDEF PLATFORM.LINUX
+        EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM.TYPE
+    $ENDIF
+*
     EXECUTE 'TERM xterm'
 *
 * VERSION
@@ -1113,8 +1116,15 @@
                         SEARCH.PATH = WORD[1,INDEX(WORD,'/',COUNT(WORD,'/'))]
                         SEARCH.WORD = WORD[LEN(SEARCH.PATH)+1,9999]
 *
-                        STATEMENT = 'SH -c "ls -ap ' : SEARCH.PATH : ' | grep ^' : SEARCH.WORD  : '"'
-                        EXECUTE STATEMENT CAPTURING RESULTS
+                        $IFDEF PLATFORM.LINUX
+                            STATEMENT = 'SH -c "ls -ap ' : SEARCH.PATH : ' | grep ^' : SEARCH.WORD  : '"'
+                            EXECUTE STATEMENT CAPTURING RESULTS
+                        $ENDIF
+*
+                        $IFDEF PLATFORM.WINDOWS
+                            RESULTS = ''
+                        $ENDIF
+*
                         RECORDS.SELECTED = DCOUNT(RESULTS,@AM)
 *
                         LIST.OF.FILES = ''
@@ -1908,6 +1918,7 @@
                         NSH.CHECK.COMMAND = 'curl -s ' : NSH.URL : ' | grep "VERSION =" -A2'
                         EXECUTE "SH -c '" : NSH.CHECK.COMMAND : "'" CAPTURING RESULTS
                     $ENDIF
+*
                     $IFDEF PLATFORM.WINDOWS
                         PRINT 'NSH: Version checks and auto update not supported on Windows.'
                         PRINT 'NSH: Please visit: https://github.com/Krowemoh/NovaShell'
@@ -2205,7 +2216,7 @@
 *
     PRINT 'NSH: BYE'
 *
-    EXECUTE 'TERM ' : ORIGINAL.TERM.TYPE 
+    EXECUTE 'TERM ' : ORIGINAL.TERM.TYPE
 *
     IF WINTEGRATE.FLAG THEN
         WINTEGRATE.TERM.TYPE = ORIGINAL.WINTEGRATE.TERM.TYPE
