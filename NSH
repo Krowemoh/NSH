@@ -7,8 +7,7 @@
     $DEFINE DATABASE.UV
     $DEFINE PLATFORM.LINUX
 *
-* SET TERMINAL TYPE
-*
+    EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM.TYPE
     EXECUTE 'TERM xterm'
 *
 * VERSION
@@ -28,6 +27,40 @@
 *
     EQU TRUE TO 1
     EQU FALSE TO 0
+*
+* WINTEGRATE CODES:
+*
+    EQU COM.START TO CHAR(27):CHAR(1)
+    EQU COM.END TO CHAR(13)
+    EQU STX TO CHAR(2)
+*
+    DARK.MODE = TRUE
+*
+    TERM.WIDTH = 132
+    TERM.HEIGHT = 66
+*
+    GOSUB CHECK.WINTEGRATE
+*
+    IF WINTEGRATE.FLAG THEN
+        GOSUB GET.BACKGROUND.COLOR
+*
+        IF WINTEGRATE.BACKGROUND # 0 THEN
+            DARK.MODE = FALSE
+        END
+*
+        GOSUB GET.WINTEGRATE.TERM.TYPE
+*
+        WINTEGRATE.TERM.TYPE = 'ansi'
+        GOSUB SET.WINTEGRATE.TERM.TYPE
+*
+        GOSUB GET.WINTEGRATE.WIDTH
+        TERM.WIDTH = WINTEGRATE.WIDTH
+*
+        GOSUB GET.WINTEGRATE.HEIGHT
+        TERM.HEIGHT = WINTEGRATE.HEIGHT
+    END
+*
+    EXECUTE 'TERM ' : TERM.WIDTH : ',' : TERM.HEIGHT
 *
 * NSH FLAGS
 *
@@ -197,10 +230,6 @@
 *
     EQU ESCAPE.CODE TO CHAR(27)
 *
-* MAKE TERMINAL MAX SIZE BASED ON WINTEGRATE
-*
-    EXECUTE 'TERM 132,66'
-*
 * TERMINAL INITIALIZATION
 *
     $IFDEF DATABASE.UV
@@ -260,7 +289,25 @@
     BRIGHTCYAN = ''
     BRIGHTWHITE = ''
 *
-    IF TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color' THEN
+    BACKGROUND.BLACK = ''
+    BACKGROUND.RED = ''
+    BACKGROUND.GREEN = ''
+    BACKGROUND.YELLOW = ''
+    BACKGROUND.BLUE = ''
+    BACKGROUND.MAGENTA = ''
+    BACKGROUND.CYAN = ''
+    BACKGROUND.WHITE = ''
+*
+    BACKGROUND.BRIGHTBLACK = ''
+    BACKGROUND.BRIGHTRED = ''
+    BACKGROUND.BRIGHTGREEN = ''
+    BACKGROUND.BRIGHTYELLOW = ''
+    BACKGROUND.BRIGHTBLUE = ''
+    BACKGROUND.BRIGHTMAGENTA = ''
+    BACKGROUND.BRIGHTCYAN = ''
+    BACKGROUND.BRIGHTWHITE = ''
+*
+    IF DARK.MODE AND (TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color') THEN
         RESET.COLOR = ESCAPE.CODE : '[0m'
 *
         BLACK = ESCAPE.CODE : '[30m'
@@ -412,6 +459,12 @@
     VALID.VERBS<-1> = 'VERSION'
     VALID.VERBS<-1> = 'WATCH'
     VALID.VERBS<-1> = 'FA'
+    VALID.VERBS<-1> = '@PATH'
+    VALID.VERBS<-1> = '@ACCOUNT'
+    VALID.VERBS<-1> = '@WHO'
+    VALID.VERBS<-1> = '@LOGNAME'
+    VALID.VERBS<-1> = '@USERNO'
+    VALID.VERBS<-1> = '@TTY'
 *
     SEARCH.COMMAND = ''
     USER.INPUT = TRUE
@@ -713,7 +766,7 @@
                     COMMAND = COMMAND : CHR
                     CURSOR.POSITION = CURSOR.POSITION + 1
 *
-                    IF TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color' THEN
+                    IF DARK.MODE AND (TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color') THEN
                         VERB = FIELD(COMMAND,' ',1)
                         POSSIBLE.COMMAND = ''
 *
@@ -1060,7 +1113,7 @@
                         SEARCH.PATH = WORD[1,INDEX(WORD,'/',COUNT(WORD,'/'))]
                         SEARCH.WORD = WORD[LEN(SEARCH.PATH)+1,9999]
 *
-                        STATEMENT = 'SH -c "ls -p ' : SEARCH.PATH : ' | grep ^' : SEARCH.WORD  : '"'
+                        STATEMENT = 'SH -c "ls -ap ' : SEARCH.PATH : ' | grep ^' : SEARCH.WORD  : '"'
                         EXECUTE STATEMENT CAPTURING RESULTS
                         RECORDS.SELECTED = DCOUNT(RESULTS,@AM)
 *
@@ -1995,8 +2048,8 @@
         END ELSE IF VERB = '@LOGNAME' THEN
             PRINT @LOGNAME
 *
-        END ELSE IF VERB = '@USER.NO' THEN
-            PRINT @USER.NO
+        END ELSE IF VERB = '@USERNO' THEN
+            PRINT @USERNO
 *
         END ELSE IF VERB = '@TTY' THEN
             PRINT @TTY
@@ -2045,7 +2098,9 @@
 *
                 ERROR.TRIGGERED = FALSE
                 LOOP WHILE TRUE DO
-                    SLEEP 1
+                    INPUTIF EXIT.WATCH THEN
+                        EXIT
+                    END ELSE NAP 1
 *
                     FOR I = 1 TO DCOUNT(RECORD.IDS,@AM)
                         IF FILENAMES<I> = '' THEN
@@ -2149,6 +2204,123 @@
     END
 *
     PRINT 'NSH: BYE'
+*
+    EXECUTE 'TERM ' : ORIGINAL.TERM.TYPE 
+*
+    IF WINTEGRATE.FLAG THEN
+        WINTEGRATE.TERM.TYPE = ORIGINAL.WINTEGRATE.TERM.TYPE
+        GOSUB SET.WINTEGRATE.TERM.TYPE
+    END
+*
+    STOP
+*
+*********************  S U B R O U T I N E  *********************
+*
+CHECK.WINTEGRATE:NULL
+*
+    WINTEGRATE.FLAG = 0
+*
+    PROMPT ''
+*
+    PRINT @(-42): ; * lock keyboard
+*
+    ECHO OFF
+*
+    PRINT COM.START : "enter stx" : COM.END :
+*
+    MS = 0
+*
+    LOOP MS += 1 WHILE MS < 500 DO
+        INPUTIF BUFFER THEN
+            IF INDEX(BUFFER, STX, 1) THEN
+                WINTEGRATE.FLAG= TRUE
+                ECHO ON
+                PRINT @(-43): ; * unlock keyboard
+                RETURN
+            END
+        END ELSE NAP 1
+    REPEAT
+*
+    ECHO ON
+*
+    PRINT @(-43): ; * unlock keyboard
+*
+    RETURN
+*
+*********************  S U B R O U T I N E  *********************
+*
+GET.WINTEGRATE.VALUE:NULL
+*
+    PROMPT ''
+    ECHO OFF
+    PRINT COM.START : 'Enter stx:Get(' : WINT.GET.VALUE : ')' : COM.END :
+    LOOP
+        INPUT ANYTHING :
+    UNTIL INDEX(ANYTHING,STX,1) DO REPEAT
+    ECHO ON
+    WINTEGRATE.VALUE = FIELD(ANYTHING,STX,2)
+*
+    RETURN
+*
+*********************  S U B R O U T I N E  *********************
+*
+GET.BACKGROUND.COLOR:NULL
+*
+    WINTEGRATE.BACKGROUND = 0
+*
+    WINT.GET.VALUE = 'Effect_Normal'
+    GOSUB GET.WINTEGRATE.VALUE
+    WINTEGRATE.COLORS = WINTEGRATE.VALUE
+*
+    CONVERT ',' TO @AM IN WINTEGRATE.COLORS
+*
+    WINTEGRATE.BACKGROUND = WINTEGRATE.COLORS<2>
+*
+    RETURN
+*
+*********************  S U B R O U T I N E  *********************
+*
+GET.WINTEGRATE.TERM.TYPE:NULL
+*
+    ORIGINAL.WINTEGRATE.TERM.TYPE = ''
+*
+    WINT.GET.VALUE = 'Emulation'
+    GOSUB GET.WINTEGRATE.VALUE
+    ORIGINAL.WINTEGRATE.TERM.TYPE = WINTEGRATE.VALUE
+*
+    RETURN
+*
+*********************  S U B R O U T I N E  *********************
+*
+SET.WINTEGRATE.TERM.TYPE:NULL
+*
+    PROMPT ''
+    ECHO OFF
+    PRINT COM.START : 'Set Emulation=`' : WINTEGRATE.TERM.TYPE : '`' : COM.END :
+    ECHO ON
+*
+    RETURN
+*
+*
+*********************  S U B R O U T I N E  *********************
+*
+GET.WINTEGRATE.HEIGHT:NULL
+*
+    WINT.GET.VALUE = 'Lines'
+    GOSUB GET.WINTEGRATE.VALUE
+    WINTEGRATE.HEIGHT = WINTEGRATE.VALUE
+*
+    RETURN
+*
+*********************  S U B R O U T I N E  *********************
+*
+GET.WINTEGRATE.WIDTH:NULL
+*
+    WINT.GET.VALUE = 'Columns'
+    GOSUB GET.WINTEGRATE.VALUE
+    WINTEGRATE.WIDTH = WINTEGRATE.VALUE
+*
+    RETURN
 *
 * END OF PROGRAM.
 *
