@@ -11,7 +11,7 @@
         EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM
     $ENDIF
 *
-    EXECUTE 'TERM xterm'
+    EXECUTE 'TERM xterm' CAPTURING RESULTS
 *
 * VERSION
 *
@@ -1062,7 +1062,7 @@
                     LENGTH.UP.TO.WORD = COL1()
                     CURRENT.COMMAND = COMMAND[1, LENGTH.UP.TO.WORD]
                     LIST.OF.FILES = ''
-                    CLEARSELECT 0
+                    CLEARSELECT
 *
                     IF WORD[1,1] = '/' THEN
                         SEARCH.PATH = WORD[1,INDEX(WORD,'/',COUNT(WORD,'/'))]
@@ -2061,9 +2061,15 @@
 *
                 ERROR.TRIGGERED = FALSE
                 LOOP WHILE TRUE DO
-                    INPUTIF EXIT.WATCH THEN
-                        EXIT
-                    END ELSE NAP 1
+                    $IFDEF DATABASE.UV
+                        INPUTIF EXIT.WATCH THEN
+                            EXIT
+                        END ELSE NAP 1
+                    $ENDIF
+*
+                    $IFDEF DATABASE.D3
+                        SLEEP 1
+                    $ENDIF
 *
                     FOR I = 1 TO DCOUNT(RECORD.IDS,@AM)
                         IF FILENAMES<I> = '' THEN
@@ -2183,31 +2189,29 @@
 CHECK.WINTEGRATE:NULL
 *
     WINTEGRATE.FLAG = 0
+    $IFDEF DATABASE.D3
+        WINTEGRATE.FLAG = 1
+    $ENDIF
 *
-    PROMPT ''
-*
-    PRINT @(-42): ; * lock keyboard
-*
-    ECHO OFF
-*
-    PRINT COM.START : "enter stx" : COM.END :
-*
-    MS = 0
-*
-    LOOP MS += 1 WHILE MS < 500 DO
-        INPUTIF BUFFER THEN
-            IF INDEX(BUFFER, STX, 1) THEN
-                WINTEGRATE.FLAG= TRUE
-                ECHO ON
-                PRINT @(-43): ; * unlock keyboard
-                RETURN
-            END
-        END ELSE NAP 1
-    REPEAT
-*
-    ECHO ON
-*
-    PRINT @(-43): ; * unlock keyboard
+    $IFDEF DATABASE.UV
+        PROMPT ''
+        PRINT @(-42): ; * lock keyboard
+        ECHO OFF
+        PRINT COM.START : "enter stx" : COM.END :
+        MS = 0
+        LOOP MS += 1 WHILE MS < 500 DO
+            INPUTIF BUFFER THEN
+                IF INDEX(BUFFER, STX, 1) THEN
+                    WINTEGRATE.FLAG = TRUE
+                    ECHO ON
+                    PRINT @(-43): ; * unlock keyboard
+                    RETURN
+                END
+            END ELSE NAP 1
+        REPEAT
+        ECHO ON
+        PRINT @(-43): ; * unlock keyboard
+    $ENDIF
 *
     RETURN
 *
