@@ -2282,21 +2282,41 @@ SETUP.WINTEGRATE:NULL
     WINT.VALUE = '\e[6~'
     GOSUB SET.WINTEGRATE.VALUE
 *
-    WINT.KEY = 'Key_UpArrow'
-    WINT.VALUE = '\eOA'
-    GOSUB SET.WINTEGRATE.VALUE
+    $IFDEF DATABASE.UV
+        WINT.KEY = 'Key_UpArrow'
+        WINT.VALUE = '\eOA'
+        GOSUB SET.WINTEGRATE.VALUE
 *
-    WINT.KEY = 'Key_DownArrow'
-    WINT.VALUE = '\eOB'
-    GOSUB SET.WINTEGRATE.VALUE
+        WINT.KEY = 'Key_DownArrow'
+        WINT.VALUE = '\eOB'
+        GOSUB SET.WINTEGRATE.VALUE
 *
-    WINT.KEY = 'Key_LeftArrow'
-    WINT.VALUE = '\eOD'
-    GOSUB SET.WINTEGRATE.VALUE
+        WINT.KEY = 'Key_LeftArrow'
+        WINT.VALUE = '\eOD'
+        GOSUB SET.WINTEGRATE.VALUE
 *
-    WINT.KEY = 'Key_RightArrow'
-    WINT.VALUE = '\eOC'
-    GOSUB SET.WINTEGRATE.VALUE
+        WINT.KEY = 'Key_RightArrow'
+        WINT.VALUE = '\eOC'
+        GOSUB SET.WINTEGRATE.VALUE
+    $ENDIF
+*
+    $IFDEF DATABASE.D3
+        WINT.KEY = 'Key_UpArrow'
+        WINT.VALUE = '\e[A'
+        GOSUB SET.WINTEGRATE.VALUE
+*
+        WINT.KEY = 'Key_DownArrow'
+        WINT.VALUE = '\e[B'
+        GOSUB SET.WINTEGRATE.VALUE
+*
+        WINT.KEY = 'Key_LeftArrow'
+        WINT.VALUE = '\e[D'
+        GOSUB SET.WINTEGRATE.VALUE
+*
+        WINT.KEY = 'Key_RightArrow'
+        WINT.VALUE = '\e[C'
+        GOSUB SET.WINTEGRATE.VALUE
+    $ENDIF
 *
     RETURN
 *
