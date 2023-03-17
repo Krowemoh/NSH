@@ -8,7 +8,7 @@
     $DEFINE PLATFORM.LINUX
 *
     $IFDEF PLATFORM.LINUX
-        EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM.TYPE
+        EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM
     $ENDIF
 *
     EXECUTE 'TERM xterm'
@@ -37,7 +37,7 @@
     EQU COM.END TO CHAR(13)
     EQU STX TO CHAR(2)
 *
-    DARK.MODE = TRUE
+    DARK.MODE = FALSE
 *
     TERM.WIDTH = 132
     TERM.HEIGHT = 66
@@ -45,22 +45,7 @@
     GOSUB CHECK.WINTEGRATE
 *
     IF WINTEGRATE.FLAG THEN
-        GOSUB GET.BACKGROUND.COLOR
-*
-        IF WINTEGRATE.BACKGROUND # 0 THEN
-            DARK.MODE = FALSE
-        END
-*
-        GOSUB GET.WINTEGRATE.TERM.TYPE
-*
-        WINTEGRATE.TERM.TYPE = 'ansi'
-        GOSUB SET.WINTEGRATE.TERM.TYPE
-*
-        GOSUB GET.WINTEGRATE.WIDTH
-        TERM.WIDTH = WINTEGRATE.WIDTH
-*
-        GOSUB GET.WINTEGRATE.HEIGHT
-        TERM.HEIGHT = WINTEGRATE.HEIGHT
+        GOSUB SETUP.WINTEGRATE
     END
 *
     EXECUTE 'TERM ' : TERM.WIDTH : ',' : TERM.HEIGHT
@@ -244,19 +229,6 @@
         TERMINAL.TYPE = TERMINAL.CODES<1>
     $ENDIF
 *
-    $IFDEF PLATFORM.LINUX
-        IF TERMINAL.TYPE = 'vp' THEN
-            PRINT 'NSH: Re-mapped susp to ^B (Ctrl B)'
-            $IFDEF DATABASE.UV
-                EXECUTE 'SH -c "stty susp ^B"'
-            $ENDIF
-            $IFDEF DATABASE.D3
-                EXECUTE '!stty susp ^B'
-            $ENDIF
-            TERMINAL.TYPE = 'viewpoint'
-        END
-    $ENDIF
-*
     $IFDEF DATABASE.UV
         UP.ARROW = 'OA'
         DOWN.ARROW = 'OB'
@@ -310,7 +282,7 @@
     BACKGROUND.BRIGHTCYAN = ''
     BACKGROUND.BRIGHTWHITE = ''
 *
-    IF DARK.MODE AND (TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color') THEN
+    IF DARK.MODE THEN
         RESET.COLOR = ESCAPE.CODE : '[0m'
 *
         BLACK = ESCAPE.CODE : '[30m'
@@ -511,7 +483,6 @@
     PRINT NSH.COLORS<BACKGROUND.COLOR> :
     PRINT NSH.COLORS<FOREGROUND.COLOR> :
     PRINT 'Welcome to NovaShell ' : VERSION : '!'
-    PRINT 'NSH: Your term is set to ' : TERMINAL.TYPE : '.'
 *
 * PRIMARY EXECUTATION LOOP
 *
@@ -670,36 +641,17 @@
                             $ENDIF
 *
                         END ELSE
-*
-* SPECIAL DELETE FOR VIEWPOINT
-*
-                            IF TERMINAL.TYPE = 'viewpoint' OR TERMINAL.TYPE = 'xterm-256color' THEN
-                                COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
+                            COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
+                            $IFDEF DATABASE.UV
+                                PRINT @(-22) :
+                            $ENDIF
+                            $IFDEF DATABASE.D3
                                 PRINT BOTTOM :
                                 PRINT SHELL.PROMPT :
-                                PRINT COMMAND : CLEAR.REST.OF.SCREEN :
-                                $IFDEF DATABASE.UV
-                                    PRINT @(-70, CURSOR.POSITION) :
-                                $ENDIF
-                                $IFDEF DATABASE.D3
-                                    FOR X = 1 TO LEN(COMMAND) - CURSOR.IN.COMMAND + 1
-                                        PRINT @(-9) :
-                                    NEXT X
-                                $ENDIF
-*
-                            END ELSE
-                                COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
-                                $IFDEF DATABASE.UV
-                                    PRINT @(-22) :
-                                $ENDIF
-                                $IFDEF DATABASE.D3
-                                    PRINT BOTTOM :
-                                    PRINT SHELL.PROMPT :
-                                    PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
-                                    PRINT CLEAR.REST.OF.SCREEN :
-                                    PRINT @(CURSOR.POSITION) :
-                                $ENDIF
-                            END
+                                PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
+                                PRINT CLEAR.REST.OF.SCREEN :
+                                PRINT @(CURSOR.POSITION) :
+                            $ENDIF
                         END
                     END
 *
@@ -769,7 +721,7 @@
                     COMMAND = COMMAND : CHR
                     CURSOR.POSITION = CURSOR.POSITION + 1
 *
-                    IF DARK.MODE AND (TERMINAL.TYPE = 'xterm' OR TERMINAL.TYPE = 'xterm-256color') THEN
+                    IF DARK.MODE THEN
                         VERB = FIELD(COMMAND,' ',1)
                         POSSIBLE.COMMAND = ''
 *
@@ -2216,11 +2168,12 @@
 *
     PRINT 'NSH: BYE'
 *
-    EXECUTE 'TERM ' : ORIGINAL.TERM.TYPE
+    EXECUTE 'TERM ' : ORIGINAL.TERM
 *
     IF WINTEGRATE.FLAG THEN
-        WINTEGRATE.TERM.TYPE = ORIGINAL.WINTEGRATE.TERM.TYPE
-        GOSUB SET.WINTEGRATE.TERM.TYPE
+        WINT.KEY = 'Emulation'
+        WINT.VALUE = ORIGINAL.WINT.TERM
+        GOSUB SET.WINTEGRATE.VALUE
     END
 *
     STOP
@@ -2262,74 +2215,84 @@ CHECK.WINTEGRATE:NULL
 *
 GET.WINTEGRATE.VALUE:NULL
 *
+    WINT.VALUE = ''
+*
     PROMPT ''
     ECHO OFF
-    PRINT COM.START : 'Enter stx:Get(' : WINT.GET.VALUE : ')' : COM.END :
+    PRINT COM.START : 'Enter stx:Get(' : WINT.KEY : ')' : COM.END :
     LOOP
         INPUT ANYTHING :
     UNTIL INDEX(ANYTHING,STX,1) DO REPEAT
     ECHO ON
-    WINTEGRATE.VALUE = FIELD(ANYTHING,STX,2)
+*
+    WINT.VALUE = FIELD(ANYTHING,STX,2)
 *
     RETURN
 *
 *********************  S U B R O U T I N E  *********************
 *
-GET.BACKGROUND.COLOR:NULL
-*
-    WINTEGRATE.BACKGROUND = 0
-*
-    WINT.GET.VALUE = 'Effect_Normal'
-    GOSUB GET.WINTEGRATE.VALUE
-    WINTEGRATE.COLORS = WINTEGRATE.VALUE
-*
-    CONVERT ',' TO @AM IN WINTEGRATE.COLORS
-*
-    WINTEGRATE.BACKGROUND = WINTEGRATE.COLORS<2>
-*
-    RETURN
-*
-*********************  S U B R O U T I N E  *********************
-*
-GET.WINTEGRATE.TERM.TYPE:NULL
-*
-    ORIGINAL.WINTEGRATE.TERM.TYPE = ''
-*
-    WINT.GET.VALUE = 'Emulation'
-    GOSUB GET.WINTEGRATE.VALUE
-    ORIGINAL.WINTEGRATE.TERM.TYPE = WINTEGRATE.VALUE
-*
-    RETURN
-*
-*********************  S U B R O U T I N E  *********************
-*
-SET.WINTEGRATE.TERM.TYPE:NULL
+SET.WINTEGRATE.VALUE:NULL
 *
     PROMPT ''
     ECHO OFF
-    PRINT COM.START : 'Set Emulation=`' : WINTEGRATE.TERM.TYPE : '`' : COM.END :
+    PRINT COM.START : 'Set ' : WINT.KEY : '=`' : WINT.VALUE : '`' : COM.END :
     ECHO ON
 *
     RETURN
 *
-*
 *********************  S U B R O U T I N E  *********************
 *
-GET.WINTEGRATE.HEIGHT:NULL
+SETUP.WINTEGRATE:NULL
 *
-    WINT.GET.VALUE = 'Lines'
+    WINT.KEY = 'Effect_Normal'
     GOSUB GET.WINTEGRATE.VALUE
-    WINTEGRATE.HEIGHT = WINTEGRATE.VALUE
+    WINTEGRATE.COLORS = WINT.VALUE
+    CONVERT ',' TO @AM IN WINTEGRATE.COLORS
+    WINTEGRATE.BACKGROUND = WINTEGRATE.COLORS<2>
 *
-    RETURN
+    IF WINTEGRATE.BACKGROUND = 0 THEN
+        DARK.MODE = TRUE
+    END
 *
-*********************  S U B R O U T I N E  *********************
-*
-GET.WINTEGRATE.WIDTH:NULL
-*
-    WINT.GET.VALUE = 'Columns'
+    WINT.KEY = 'Emulation'
     GOSUB GET.WINTEGRATE.VALUE
-    WINTEGRATE.WIDTH = WINTEGRATE.VALUE
+    ORIGINAL.WINT.TERM = WINT.VALUE
+*
+    WINT.KEY = 'Emulation'
+    WINT.VALUE = 'ansi'
+    GOSUB SET.WINTEGRATE.VALUE
+*
+    WINT.KEY = 'Columns'
+    GOSUB GET.WINTEGRATE.VALUE
+    TERM.WIDTH = WINT.VALUE
+*
+    WINT.KEY = 'Lines'
+    GOSUB GET.WINTEGRATE.VALUE
+    TERM.HEIGHT = WINT.VALUE
+*
+    WINT.KEY = 'Key_PageUp'
+    WINT.VALUE = '\e[5~'
+    GOSUB SET.WINTEGRATE.VALUE
+*
+    WINT.KEY = 'Key_PageDown'
+    WINT.VALUE = '\e[6~'
+    GOSUB SET.WINTEGRATE.VALUE
+*
+    WINT.KEY = 'Key_UpArrow'
+    WINT.VALUE = '\eOA'
+    GOSUB SET.WINTEGRATE.VALUE
+*
+    WINT.KEY = 'Key_DownArrow'
+    WINT.VALUE = '\eOB'
+    GOSUB SET.WINTEGRATE.VALUE
+*
+    WINT.KEY = 'Key_LeftArrow'
+    WINT.VALUE = '\eOD'
+    GOSUB SET.WINTEGRATE.VALUE
+*
+    WINT.KEY = 'Key_RightArrow'
+    WINT.VALUE = '\eOC'
+    GOSUB SET.WINTEGRATE.VALUE
 *
     RETURN
 *
