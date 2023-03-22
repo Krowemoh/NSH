@@ -653,36 +653,13 @@
                             $ENDIF
 *
                         END ELSE
-                            IF TERMINAL.EMULATOR = 'putty' THEN
-                                COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
+                            COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
 *
-                                PRINT BOTTOM :
-                                PRINT SHELL.PROMPT :
-                                PRINT COMMAND : CLEAR.REST.OF.SCREEN :
-*
-                                $IFDEF DATABASE.UV
-                                    PRINT @(-70, CURSOR.POSITION) :
-                                $ENDIF
-*
-                                $IFDEF DATABASE.D3
-                                    FOR X = 1 TO LEN(COMMAND) - CURSOR.IN.COMMAND + 1
-                                        PRINT @(-9) :
-                                    NEXT X
-                                $ENDIF
-*
-                            END ELSE
-                                COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
-                                $IFDEF DATABASE.UV
-                                    PRINT @(-22) :
-                                $ENDIF
-                                $IFDEF DATABASE.D3
-                                    PRINT BOTTOM :
-                                    PRINT SHELL.PROMPT :
-                                    PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
-                                    PRINT CLEAR.REST.OF.SCREEN :
-                                    PRINT @(CURSOR.POSITION) :
-                                $ENDIF
-                            END
+                            PRINT BOTTOM :
+                            PRINT SHELL.PROMPT :
+                            PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
+                            PRINT CLEAR.REST.OF.SCREEN :
+                            PRINT @(CURSOR.POSITION) :
                         END
                     END
 *
@@ -812,13 +789,11 @@
                 END ELSE
                     COMMAND = COMMAND[1,CURSOR.POSITION.IN.COMMAND] : CHR : COMMAND[CURSOR.POSITION.IN.COMMAND+1,9999]
                     CURSOR.POSITION = CURSOR.POSITION + 1
-                    $IFDEF DATABASE.D3
-                        PRINT BOTTOM :
-                        PRINT SHELL.PROMPT :
-                        PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
-                        PRINT CLEAR.REST.OF.SCREEN :
-                        PRINT @(CURSOR.POSITION) :
-                    $ENDIF
+                    PRINT BOTTOM :
+                    PRINT SHELL.PROMPT :
+                    PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
+                    PRINT CLEAR.REST.OF.SCREEN :
+                    PRINT @(CURSOR.POSITION) :
                 END
             END
 *
