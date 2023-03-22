@@ -10,26 +10,25 @@
     $IFDEF PLATFORM.LINUX
         $IFDEF DATABASE.UV
             EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM
+            EXECUTE 'SH -c "echo $TERMINAL_EMULATOR"' CAPTURING TERMINAL.EMULATOR
         $ENDIF
 *
         $IFDEF DATABASE.D3
             EXECUTE '!echo $TERM' CAPTURING ORIGINAL.TERM
+            EXECUTE '!echo $TERMINAL_EMULATOR' CAPTURING TERMINAL.EMULATOR
         $ENDIF
     $ENDIF
 *
     $IFDEF PLATFORM.WINDOWS
         ORIGINAL.TERM = 'ansi'
+        TERMINAL.EMULATOR = ''
     $ENDIF
 *
     EXECUTE 'TERM xterm' CAPTURING RESULTS
 *
 * VERSION
 *
-    VERSION = '9'
-*
-* NSH MASTER URL
-*
-    NSH.URL = 'https://raw.githubusercontent.com/Krowemoh/NovaShell/main/NSH'
+    VERSION = '10'
 *
 * CONSTANTS
 *
@@ -52,10 +51,18 @@
     TERM.WIDTH = 132
     TERM.HEIGHT = 66
 *
-    GOSUB CHECK.WINTEGRATE
+    WINTEGRATE.FLAG = FALSE
 *
-    IF WINTEGRATE.FLAG THEN
-        GOSUB SETUP.WINTEGRATE
+    IF TERMINAL.EMULATOR<1> = 'putty' THEN
+        DARK.MODE = TRUE
+        GOSUB SETUP.PUTTY
+*
+    END ELSE
+        GOSUB CHECK.WINTEGRATE
+*
+        IF WINTEGRATE.FLAG THEN
+            GOSUB SETUP.WINTEGRATE
+        END
     END
 *
     EXECUTE 'TERM ' : TERM.WIDTH : ',' : TERM.HEIGHT
@@ -66,12 +73,6 @@
     IF INDEX(@SENTENCE,"--SHOW-IP",1) # 0 THEN
         SHOW.IP.FLAG = TRUE
     END
-*
-    STARTUP.MATRIX = ''
-    STARTUP.MATRIX<-1> = 'PQ'
-    STARTUP.MATRIX<-1> = 'HTERM xterm-256color'
-    STARTUP.MATRIX<-1> = 'P'
-    STARTUP.MATRIX<-1> = 'HNSH'
 *
 * SYSTEM FILE FOR UV ACCOUNTS
 *
@@ -435,7 +436,6 @@
     VALID.VERBS<-1> = 'EXIT'
     VALID.VERBS<-1> = 'HISTORY'
     VALID.VERBS<-1> = 'MAN'
-    VALID.VERBS<-1> = 'NSHUP'
     VALID.VERBS<-1> = 'PRINT'
     VALID.VERBS<-1> = 'Q'
     VALID.VERBS<-1> = 'SEARCH'
@@ -651,17 +651,33 @@
                             $ENDIF
 *
                         END ELSE
-                            COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
-                            $IFDEF DATABASE.UV
-                                PRINT @(-22) :
-                            $ENDIF
-                            $IFDEF DATABASE.D3
+                            IF TERMINAL.EMULATOR = 'putty' THEN
+                                COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
                                 PRINT BOTTOM :
                                 PRINT SHELL.PROMPT :
-                                PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
-                                PRINT CLEAR.REST.OF.SCREEN :
-                                PRINT @(CURSOR.POSITION) :
-                            $ENDIF
+                                PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+                                $IFDEF DATABASE.UV
+                                    PRINT @(-70, CURSOR.POSITION) :
+                                $ENDIF
+                                $IFDEF DATABASE.D3
+                                    FOR X = 1 TO LEN(COMMAND) - CURSOR.IN.COMMAND + 1
+                                        PRINT @(-9) :
+                                    NEXT X
+                                $ENDIF
+*
+                            END ELSE
+                                COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
+                                $IFDEF DATABASE.UV
+                                    PRINT @(-22) :
+                                $ENDIF
+                                $IFDEF DATABASE.D3
+                                    PRINT BOTTOM :
+                                    PRINT SHELL.PROMPT :
+                                    PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
+                                    PRINT CLEAR.REST.OF.SCREEN :
+                                    PRINT @(CURSOR.POSITION) :
+                                $ENDIF
+                            END
                         END
                     END
 *
@@ -1865,129 +1881,6 @@
                 END
             REPEAT
 *
-        END ELSE IF VERB = 'NSHUP' THEN
-            NSHUP.COMMAND = COMMAND[INDEX(COMMAND,' ',1)+1,9999]
-*
-            SERIES = ''
-            COMMAND = ''
-*
-            BEGIN CASE
-                CASE NSHUP.COMMAND = 'SHOW'
-                    PRINT 'NSH: Version ' : VERSION
-*
-                CASE NSHUP.COMMAND = 'CHECK' OR NSHUP.COMMAND = 'UPDATE'
-                    $IFDEF PLATFORM.LINUX
-                        NSH.CHECK.COMMAND = 'curl -s ' : NSH.URL : ' | grep "VERSION =" -A2'
-                        EXECUTE "SH -c '" : NSH.CHECK.COMMAND : "'" CAPTURING RESULTS
-                    $ENDIF
-*
-                    $IFDEF PLATFORM.WINDOWS
-                        PRINT 'NSH: Version checks and auto update not supported on Windows.'
-                        PRINT 'NSH: Please visit: https://github.com/Krowemoh/NovaShell'
-                        CONTINUE
-                    $ENDIF
-*
-                    REMOTE.VERSION = FIELD(RESULTS<1>,"'",2)
-*
-                    PRINT 'NSH: Current version: ' : VERSION
-*
-                    IF REMOTE.VERSION > VERSION THEN
-                        PRINT 'NSH: Update to ' : REMOTE.VERSION : ' available.'
-*
-                        IF NSHUP.COMMAND # 'UPDATE' THEN
-                            CONTINUE
-                        END
-*
-                        PRINT 'Do you want to update? (y/n) ' :
-                        INPUT ANS
-*
-                        IF ANS # 'Y' THEN
-                            CONTINUE
-                            PRINT 'NSH: No changes made.'
-                        END
-*
-                        OPEN '',VOC TO VOC.FILE ELSE
-                            PRINT 'Unable to open file: ' : VOC :
-                            CONTINUE
-                        END
-*
-                        READ NSH.MD.ITEM FROM VOC.FILE,'NSH' ELSE
-                            PRINT 'NSH: NSH not found in master dictionary.'
-                            CONTINUE
-                        END
-*
-                        PRINT 'Updating...'
-*
-                        $IFDEF DATABASE.UV
-                            BP = CHANGE(NSH.MD.ITEM<9>,'.O','',1)
-*
-                            IF INDEX(BP,'/',1) # 0 THEN
-                                SERIES = ''
-                                PRINT 'NSH: Update from the original NSH location.'
-                                PRINT 'NSH: Location: ' : BP
-                                PRINT 'NSH: No changes made.'
-                                CONTINUE
-                            END
-*
-                            OPEN '',BP TO BP.FILE ELSE
-                                PRINT 'Unable to open file: ' : BP :
-                                CONTINUE
-                            END
-*
-                            NSH.GET.COMMAND = 'curl -s ' : NSH.URL
-                            EXECUTE "SH -c '" : NSH.GET.COMMAND : "'" CAPTURING REMOTE.NSH.FILE
-*
-                            WRITE REMOTE.NSH.FILE ON BP.FILE,'NSH'
-*
-                            EXECUTE 'BASIC ' : BP : ' NSH'
-*
-                            CHAIN 'NSH'
-                        $ENDIF
-                        $IFDEF DATABASE.D3
-                            PRINT 'NSH: Auto update not supported on D3.'
-                            PRINT 'NSH: Please visit: https://github.com/Krowemoh/NovaShell'
-                        $ENDIF
-*
-                    END ELSE IF REMOTE.VERSION = VERSION THEN
-                        PRINT 'NSH: NSH is up to date.'
-*
-                    END ELSE
-                        PRINT 'NSH: Remote version: ' : REMOTE.VERSION
-                        PRINT 'NSH: Current version is ahead.'
-                    END
-*
-                CASE NSHUP.COMMAND = 'ENABLE STARTUP'
-                    OPEN '',VOC TO VOC.FILE THEN
-                        READ POSSIBLE.STARTUP.MATRIX FROM VOC.FILE,USER.NAME THEN
-                            IF POSSIBLE.STARTUP.MATRIX = STARTUP.MATRIX THEN
-                                PRINT 'NSH: NSH is already enabled on startup.'
-                            END ELSE
-                                PRINT 'NSH: Did not enable NSH on startup.'
-                                PRINT 'NSH: ' : VOC : ' entry for ' : USER.NAME : ' already exists.'
-                            END
-*
-                        END ELSE
-                            WRITE STARTUP.MATRIX ON VOC.FILE,USER.NAME
-                            PRINT 'NSH: Enabled NSH on startup.'
-                        END
-                    END
-*
-                CASE NSHUP.COMMAND = 'DISABLE STARTUP'
-                    OPEN '',VOC TO VOC.FILE THEN
-                        READU POSSIBLE.STARTUP.MATRIX FROM VOC.FILE,USER.NAME THEN
-                            IF POSSIBLE.STARTUP.MATRIX = STARTUP.MATRIX THEN
-                                DELETE VOC.FILE,USER.NAME
-                                PRINT 'NSH: Disabled NSH from running on startup.'
-                            END
-                        END ELSE
-                            PRINT 'NSH: NSH is not enabled on startup.'
-                        END
-                    END
-*
-                CASE TRUE
-                    PRINT 'NSH: Invalid NSHUP command.'
-            END CASE
-*
         END ELSE IF VERB = 'PRINT' THEN
             PRINT.COMMAND = FIELD(COMMAND,' ',2)
 *
@@ -2326,6 +2219,26 @@ SETUP.WINTEGRATE:NULL
         WINT.KEY = 'Key_RightArrow'
         WINT.VALUE = '\e[C'
         GOSUB SET.WINTEGRATE.VALUE
+    $ENDIF
+*
+    RETURN
+*
+*********************  S U B R O U T I N E  *********************
+*
+SETUP.PUTTY:NULL
+*
+    $IFDEF PLATFORM.LINUX
+        $IFDEF DATABASE.UV
+            EXECUTE 'SH -c "stty size"' CAPTURING TERM.SIZE
+            TERM.HEIGHT = FIELD(TERM.SIZE<1>,' ',1)
+            TERM.WIDTH = FIELD(TERM.SIZE<1>,' ',2)
+        $ENDIF
+*
+        $IFDEF DATABASE.D3
+            EXECUTE '!stty size' CAPTURING TERM.SIZE
+            TERM.HEIGHT = FIELD(TERM.SIZE<1>,' ',1)
+            TERM.WIDTH = FIELD(TERM.SIZE<1>,' ',2)
+        $ENDIF
     $ENDIF
 *
     RETURN
