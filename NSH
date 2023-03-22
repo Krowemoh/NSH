@@ -11,11 +11,13 @@
         $IFDEF DATABASE.UV
             EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM
             EXECUTE 'SH -c "echo $TERMINAL_EMULATOR"' CAPTURING TERMINAL.EMULATOR
+            TERMINAL.EMULATOR = TERMINAL.EMULATOR<1>
         $ENDIF
 *
         $IFDEF DATABASE.D3
             EXECUTE '!echo $TERM' CAPTURING ORIGINAL.TERM
             EXECUTE '!echo $TERMINAL_EMULATOR' CAPTURING TERMINAL.EMULATOR
+            TERMINAL.EMULATOR = TERMINAL.EMULATOR<1>
         $ENDIF
     $ENDIF
 *
@@ -53,7 +55,7 @@
 *
     WINTEGRATE.FLAG = FALSE
 *
-    IF TERMINAL.EMULATOR<1> = 'putty' THEN
+    IF TERMINAL.EMULATOR = 'putty' THEN
         DARK.MODE = TRUE
         GOSUB SETUP.PUTTY
 *
@@ -653,12 +655,15 @@
                         END ELSE
                             IF TERMINAL.EMULATOR = 'putty' THEN
                                 COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
+*
                                 PRINT BOTTOM :
                                 PRINT SHELL.PROMPT :
                                 PRINT COMMAND : CLEAR.REST.OF.SCREEN :
+*
                                 $IFDEF DATABASE.UV
                                     PRINT @(-70, CURSOR.POSITION) :
                                 $ENDIF
+*
                                 $IFDEF DATABASE.D3
                                     FOR X = 1 TO LEN(COMMAND) - CURSOR.IN.COMMAND + 1
                                         PRINT @(-9) :
