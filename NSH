@@ -1553,35 +1553,6 @@
             END CASE
         END
 *
-* EXECUTE SHELL COMMANDS
-*
-        IF COMMAND = '!' THEN
-            $IFDEF PLATFORM.LINUX
-                $IFDEF DATABASE.UV
-                    PRINT
-                    EXECUTE 'SH'
-                    COMMAND = ''
-                    CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
-                $ENDIF
-            $ENDIF
-*
-        END ELSE IF COMMAND[1,1] = '!' THEN
-            COMMAND = COMMAND[2,LEN(COMMAND)]
-            $IFDEF PLATFORM.LINUX
-                $IFDEF DATABASE.UV
-                    EXECUTE 'SH -c ' : '"' : COMMAND : '"'
-                $ENDIF
-                $IFDEF DATABASE.D3
-                    EXECUTE '!' : COMMAND
-                $ENDIF
-            $ENDIF
-            $IFDEF PLATFORM.WINDOWS
-                EXECUTE '! ' : '"' : COMMAND : '"'
-            $ENDIF
-            COMMAND = ''
-            CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
-        END
-*
         PRINT
 *
         VERB = FIELD(COMMAND,' ',1)
@@ -1589,6 +1560,44 @@
 * EXECUTE NSH VERBS
 *
         BEGIN CASE
+            CASE COMMAND = '!'
+                COMMAND.HISTORY = COMMAND : @VM : ACCOUNT.NAME : @VM : DATE() : @VM : TIME()
+                COMMAND.STACK = INSERT(COMMAND.STACK, 1;COMMAND.HISTORY)
+                IF NSH.HISTORY.OPENED THEN
+                    WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
+                END
+*
+                $IFDEF PLATFORM.LINUX
+                    $IFDEF DATABASE.UV
+                        PRINT
+                        EXECUTE 'SH'
+                        CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+                    $ENDIF
+                $ENDIF
+                COMMAND = ''
+*
+            CASE COMMAND[1,1] = '!'
+                COMMAND.HISTORY = COMMAND : @VM : ACCOUNT.NAME : @VM : DATE() : @VM : TIME()
+                COMMAND.STACK = INSERT(COMMAND.STACK, 1;COMMAND.HISTORY)
+                IF NSH.HISTORY.OPENED THEN
+                    WRITE COMMAND.STACK ON NSH.HISTORY.FILE, COMMAND.HISTORY.FILE.NAME
+                END
+*
+                COMMAND = COMMAND[2,LEN(COMMAND)]
+                $IFDEF PLATFORM.LINUX
+                    $IFDEF DATABASE.UV
+                        EXECUTE 'SH -c ' : '"' : COMMAND : '"'
+                    $ENDIF
+                    $IFDEF DATABASE.D3
+                        EXECUTE '!' : COMMAND
+                    $ENDIF
+                $ENDIF
+                $IFDEF PLATFORM.WINDOWS
+                    EXECUTE '! ' : '"' : COMMAND : '"'
+                $ENDIF
+                COMMAND = ''
+                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+*
             CASE COMMAND = 'TCL'
                 PRINT RESET.COLOR :
                 COMMAND = ''
@@ -1712,7 +1721,6 @@
                         END
 *
                 END CASE
-*
         END CASE
 *
         IF ADD.TO.STACK AND COMMAND # '' THEN
@@ -2227,4 +2235,4 @@ SETUP.PUTTY:NULL
 *
     END
 *
-
+    
