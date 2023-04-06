@@ -2046,6 +2046,10 @@
                 $ENDIF
 *
             END ELSE
+                IF VERB = 'TIME' OR VERB = 'C' THEN
+                    SERIES = VERB
+                END
+*
                 EXECUTE SERIES
             END
         END
@@ -2235,4 +2239,5 @@ SETUP.PUTTY:NULL
 *
     END
 *
+    
     
