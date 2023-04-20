@@ -30,7 +30,7 @@
 *
 * VERSION
 *
-    VERSION = '10'
+    VERSION = '11'
 *
 * CONSTANTS
 *
@@ -1757,6 +1757,16 @@
                 EXECUTE SERIES : ' (f'
                 ACCOUNT.NAME = @ACCOUNT
             $ENDIF
+*
+        END ELSE IF VERB = 'SELECT'  OR VERB = 'SSELECT' THEN
+            LIST.NAME = USER.NAME : '.' : PORT.NUMBER : '.LIST'
+            SERIES<-1> = 'SAVE-LIST ' : LIST.NAME
+            EXECUTE SERIES CAPTURING RESULTS
+*
+            PRINT RESULTS<DCOUNT(RESULTS,@AM)-1>
+*
+            SERIES = 'GET-LIST ' : LIST.NAME
+            EXECUTE SERIES CAPTURING RESULTS
 *
         END ELSE IF VERB = 'SEARCH' THEN
             ECHO OFF
