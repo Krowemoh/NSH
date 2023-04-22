@@ -1260,7 +1260,7 @@
                                 PRINT SHELL.PROMPT :
                                 PRINT CURRENT.COMMAND : ITEM.ID : CLEAR.REST.OF.SCREEN :
 *
-                                IF VERB = 'MAN' OR VERB = 'RUN' OR VERB = 'FORMAT' OR FILE.LOOKUP = 'KP' OR VERB = 'EVA' THEN
+                                IF VERB = 'MAN' OR VERB = 'RUN' OR VERB = 'FORMAT' OR FILE.LOOKUP = 'KP' OR VERB = 'EVA' OR VERB = 'MOVE' THEN
                                     COMMAND = CURRENT.COMMAND : ITEM.ID
                                 END ELSE
                                     COMMAND = CURRENT.COMMAND : '"' : ITEM.ID : '"'
@@ -2251,3 +2251,4 @@ SETUP.PUTTY:NULL
 *
     
     
+
