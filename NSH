@@ -220,6 +220,7 @@
     EQU KEY.CTRL.A TO CHAR(1)
     EQU KEY.CTRL.C TO CHAR(3)
     EQU KEY.CTRL.F TO CHAR(6)
+    EQU KEY.CTRL.X TO CHAR(24)
     EQU KEY.ESCAPE TO CHAR(27)
     EQU KEY.BACKSPACE TO CHAR(8)
     EQU KEY.TAB TO CHAR(9)
@@ -585,7 +586,7 @@
                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                     CONTINUE
 *
-                CASE ASCII.CODE = SEQ(KEY.CTRL.A)
+                CASE ASCII.CODE = SEQ(KEY.CTRL.X)
                     PRINT BOTTOM :
                     PRINT SHELL.PROMPT :
                     PRINT CLEAR.REST.OF.SCREEN :
@@ -593,6 +594,17 @@
                     HISTORY.STACK.POINTER = 0 ;
                     COMMAND = ''
                     CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+                    CONTINUE
+*
+                CASE ASCII.CODE = SEQ(KEY.CTRL.A)
+                    PRINT BOTTOM :
+                    PRINT SHELL.PROMPT :
+                    PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
+                    PRINT CLEAR.REST.OF.SCREEN :
+*
+                    CURSOR.POSITION = LEN(RAW.SHELL.PROMPT)
+*
+                    PRINT @(CURSOR.POSITION) :
                     CONTINUE
 *
                 CASE ASCII.CODE = SEQ(KEY.CTRL.F)
@@ -607,8 +619,10 @@
 *
                         PRINT.SHELL.PROMPT = FALSE
                         HISTORY.STACK.POINTER = 0 ;
-                        CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                     END
+*
+                    CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+                    PRINT @(CURSOR.POSITION) :
 *
                     CONTINUE
 *
@@ -2251,4 +2265,4 @@ SETUP.PUTTY:NULL
 *
     
     
-
+    
