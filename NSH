@@ -1804,9 +1804,11 @@
                 EXECUTE SERIES CAPTURING RESULTS
 *
                 PRINT
+*
                 MESSAGE = RESULTS<DCOUNT(RESULTS, @AM)-1>
                 PRINT MESSAGE
-                IF INDEX(MESSAGE,'0 record',1) = 0 THEN
+*
+                IF MESSAGE[1,1] # 0 THEN
                     SERIES = 'GET-LIST ' : USER.NAME : '.' : PORT.NUMBER : '.LIST'
                 END ELSE
                     SERIES = ''
@@ -2266,3 +2268,4 @@ SETUP.PUTTY:NULL
     
     
     
+
