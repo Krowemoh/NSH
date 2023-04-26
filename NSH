@@ -1783,7 +1783,6 @@
             EXECUTE SERIES CAPTURING RESULTS
 *
         END ELSE IF VERB = 'SEARCH' THEN
-            ECHO OFF
 *
             $IFDEF DATABASE.UV
                 SERIES.LENGTH = DCOUNT(SERIES,@AM)
@@ -1798,10 +1797,13 @@
                     END
                     DATA SEARCH.KEY
                     DATA ''
+*
+                    ECHO OFF
                 END
 *
                 SERIES<-1> = 'SAVE-LIST ' : USER.NAME : '.' : PORT.NUMBER : '.LIST'
                 EXECUTE SERIES CAPTURING RESULTS
+                ECHO ON
 *
                 PRINT
 *
@@ -1829,7 +1831,9 @@
                     DATA SEARCH.KEY
                     DATA ''
                     DATA USER.NAME : '.' : PORT.NUMBER : '.LIST'
+                    ECHO OFF
                     EXECUTE SERIES CAPTURING RESULTS
+                    ECHO ON
 *
                 END ELSE
                     EXECUTE SERIES
@@ -1839,7 +1843,6 @@
                 EXECUTE SERIES
             $ENDIF
 *
-            ECHO ON
 *
         END ELSE IF VERB = 'SAVE-LIST' THEN
             EXECUTE SERIES CAPTURING RESULTS
@@ -2268,4 +2271,5 @@ SETUP.PUTTY:NULL
     
     
     
+
 
