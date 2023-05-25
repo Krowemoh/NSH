@@ -578,10 +578,14 @@
                CONTINUE
 *
             CASE ASCII.CODE = SEQ(KEY.FORWARD.SLASH)
-               LINUX.COMMAND.MODE = TRUE
+               IF COMMAND[1,1] # '.' THEN
+                  LINUX.COMMAND.MODE = TRUE
+               END
+*
                $IFDEF DATABASE.UV
                   PRINT CHR :
                $ENDIF
+*
                COMMAND = COMMAND : CHR
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                CONTINUE
