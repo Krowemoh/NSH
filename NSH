@@ -656,12 +656,13 @@
                      COMMAND = COMMAND[1,LEN(COMMAND) - 1]
                      $IFDEF DATABASE.UV
                         VERB = FIELD(COMMAND,' ',1)
+                        B = BOTTOM - INT((LEN(COMMAND)+LEN(RAW.SHELL.PROMPT))/TERM.WIDTH) - 1
                         LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
-                           PRINT @(0,BOTTOM) :
+                           PRINT @(0,B) :
                            PRINT SHELL.PROMPT :
                            PRINT NSH.COLORS<INPUT.COLOR> : COMMAND : CLEAR.REST.OF.SCREEN :
                         END ELSE
-                           PRINT @(0,BOTTOM) :
+                           PRINT @(0,B) :
                            PRINT SHELL.PROMPT :
                            PRINT NSH.COLORS<ERROR.COLOR> : COMMAND : CLEAR.REST.OF.SCREEN :
                         END
@@ -673,11 +674,12 @@
                   END ELSE
                      COMMAND = COMMAND[1,CURSOR.IN.COMMAND-1] : COMMAND[CURSOR.IN.COMMAND+1,9999]
 *
-                     PRINT @(0,BOTTOM) :
+                     B = BOTTOM - INT((LEN(COMMAND)+LEN(RAW.SHELL.PROMPT))/TERM.WIDTH) - 1
+                     PRINT @(0,B) :
                      PRINT SHELL.PROMPT :
                      PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
                      PRINT CLEAR.REST.OF.SCREEN :
-                     PRINT @(CURSOR.POSITION) :
+                     PRINT @(CURSOR.POSITION,B) :
                   END
                END
 *
@@ -787,31 +789,38 @@
                      END
                   END
 *
+                  IF POSSIBLE.COMMAND THEN
+                     B = BOTTOM - INT((LEN(POSSIBLE.COMMAND)+LEN(RAW.SHELL.PROMPT))/TERM.WIDTH) - 1
+                  END ELSE
+                     B = BOTTOM - INT((LEN(COMMAND)+LEN(RAW.SHELL.PROMPT))/TERM.WIDTH) - 1
+                  END
+*
                   IF VALID.VERB THEN
-                     PRINT @(0,BOTTOM) :
+                     PRINT @(0,B) :
                      PRINT SHELL.PROMPT :
                      PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
                      PRINT NSH.COLORS<SUGGESTION.COLOR> : POSSIBLE.COMMAND[LEN(COMMAND)+1,9999] :
                      PRINT CLEAR.REST.OF.SCREEN :
-                     PRINT @(CURSOR.POSITION) :
+                     PRINT @(CURSOR.POSITION,B) :
                   END ELSE
-                     PRINT @(0,BOTTOM) :
+                     PRINT @(0,B) :
                      PRINT SHELL.PROMPT :
                      PRINT NSH.COLORS<ERROR.COLOR> : COMMAND :
                      PRINT NSH.COLORS<SUGGESTION.COLOR> : POSSIBLE.COMMAND[LEN(COMMAND)+1,9999] :
                      PRINT CLEAR.REST.OF.SCREEN :
-                     PRINT @(CURSOR.POSITION) :
+                     PRINT @(CURSOR.POSITION,B) :
                   END
                END
 *
             END ELSE
                COMMAND = COMMAND[1,CURSOR.POSITION.IN.COMMAND] : CHR : COMMAND[CURSOR.POSITION.IN.COMMAND+1,9999]
                CURSOR.POSITION = CURSOR.POSITION + 1
-               PRINT @(0,BOTTOM) :
+               B = BOTTOM - INT((LEN(COMMAND)+LEN(RAW.SHELL.PROMPT))/TERM.WIDTH) - 1
+               PRINT @(0,B) :
                PRINT SHELL.PROMPT :
                PRINT NSH.COLORS<INPUT.COLOR> : COMMAND :
                PRINT CLEAR.REST.OF.SCREEN :
-               PRINT @(CURSOR.POSITION) :
+               PRINT @(CURSOR.POSITION,B) :
             END
          END
 *
@@ -892,7 +901,6 @@
                   CURSOR.POSITION = CURSOR.POSITION - 1
                END
 *
-               
                PRINT @(0,BOTTOM) :
                PRINT SHELL.PROMPT :
                PRINT COMMAND : CLEAR.REST.OF.SCREEN :
