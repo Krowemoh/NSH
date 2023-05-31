@@ -445,7 +445,6 @@
    VALID.VERBS<-1> = 'TCL'
    VALID.VERBS<-1> = 'TIMECONV'
    VALID.VERBS<-1> = 'VERSION'
-   VALID.VERBS<-1> = 'WATCH'
    VALID.VERBS<-1> = 'FA'
    VALID.VERBS<-1> = '@PATH'
    VALID.VERBS<-1> = '@ACCOUNT'
@@ -1955,100 +1954,6 @@
       END ELSE IF VERB = 'TIME()' THEN
          PRINT TIME()
 *
-      END ELSE IF VERB = 'WATCH' THEN
-         COMMAND = COMMAND[7,999]
-*
-         IF COMMAND # '' THEN
-            PRINT 'Started watch of: ' : COMMAND
-*
-            RECORD.IDS = ''
-            ORIGINAL.RECORDS = ''
-            FILENAMES = ''
-*
-            FOR I = 1 TO DCOUNT(COMMAND,',')
-               FILENAME = FIELD(TRIM(FIELD(COMMAND,',',I)),' ',1)
-               RECORD.ID = FIELD(TRIM(FIELD(COMMAND,',',I)),' ',2)
-*
-               OPEN '',FILENAME TO FILE THEN
-                  READ RECORD FROM FILE,RECORD.ID ELSE RECORD = ''
-*
-                  RECORD.IDS<I> = RECORD.ID
-                  FILENAMES<I> = FILENAME
-*
-                  $IFDEF DATABASE.UV
-                     LOWERED.RECORD = LOWER(ORIGINAL.RECORDS<I>)
-                  $ENDIF
-*
-                  $IFDEF DATABASE.D3
-                     LOWERED.RECORD = ORIGINAL.RECORDS<I>
-                     CONVERT @AM:@VM:@SVM:@TM TO @VM:@SVM:@TM:@STM IN LOWERED.RECORD
-                  $ENDIF
-*
-                  ORIGINAL.RECORDS<I> = LOWERED.RECORD
-*
-               END ELSE
-                  PRINT 'Unable to open file: ' : FILENAME
-               END
-            NEXT I
-*
-            ERROR.TRIGGERED = FALSE
-            LOOP WHILE TRUE DO
-               $IFDEF DATABASE.UV
-                  INPUTIF EXIT.WATCH THEN
-                     EXIT
-                  END ELSE NAP 1
-               $ENDIF
-*
-               $IFDEF DATABASE.D3
-                  SLEEP 1
-               $ENDIF
-*
-               FOR I = 1 TO DCOUNT(RECORD.IDS,@AM)
-                  IF FILENAMES<I> = '' THEN
-                     CONTINUE
-                  END
-*
-                  OPEN '',FILENAME TO FILE ELSE
-                     CONTINUE
-                  END
-*
-                  READ RECORD FROM FILE,RECORD.IDS<I> ELSE RECORD = ''
-*
-                  $IFDEF DATABASE.UV
-                     LOWERED.RECORD = LOWER(RECORD)
-                  $ENDIF
-*
-                  $IFDEF DATABASE.D3
-                     LOWERED.RECORD = RECORD
-                     CONVERT @AM:@VM:@SVM:@TM TO @VM:@SVM:@TM:@STM IN LOWERED.RECORD
-                  $ENDIF
-*
-                  IF ORIGINAL.RECORDS<I> # LOWERED.RECORD THEN
-                     ORIGINAL.RECORDS<I> = LOWERED.RECORD
-                     EXECUTE 'BASIC ' : FILENAMES<I> : ' ' : RECORD.IDS<I> CAPTURING RESULTS
-*
-                     IF RESULTS<3> = '' THEN
-                        IF ERROR.TRIGGERED THEN
-                           PRINT CLEAR.SCREEN :
-                           ERROR.TRIGGERED = FALSE
-                        END
-                        PRINT OCONV(TIME(),'MTS') : ': ' : RESULTS<1>
-                     END ELSE
-                        ERROR.TRIGGERED = TRUE
-                        PRINT CLEAR.SCREEN :
-                        PRINT OCONV(TIME(),'MTS') : ': ' :
-                        PRINT 'Error -----------------'
-                        PRINT
-                        FOR J = 1 TO DCOUNT(RESULTS,@AM)
-                           PRINT RESULTS<J>
-                        NEXT J
-                     END
-                  END
-               NEXT I
-*
-            REPEAT
-         END
-*
       END ELSE IF VERB = 'VERSION' THEN
          PRINT 'NSH: Version ' : VERSION
 *
@@ -2286,3 +2191,4 @@ SETUP.PUTTY:NULL
    
    
    
+
