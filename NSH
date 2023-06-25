@@ -906,7 +906,7 @@
                PRINT SHELL.PROMPT :
                PRINT COMMAND : CLEAR.REST.OF.SCREEN :
 *
-               PRINT @(CURSOR.POSITION, 66) :
+               PRINT @(CURSOR.POSITION, TERM.HEIGHT) :
                $IFDEF DATABASE.UV
                   PRINT @(-20) :
                $ENDIF
@@ -940,7 +940,7 @@
                PRINT SHELL.PROMPT :
                PRINT COMMAND : CLEAR.REST.OF.SCREEN :
 *
-               PRINT @(CURSOR.POSITION, 66) :
+               PRINT @(CURSOR.POSITION, TERM.HEIGHT) :
                $IFDEF DATABASE.UV
                   PRINT @(-20) :
                $ENDIF
@@ -2201,5 +2201,6 @@ SETUP.PUTTY:NULL
    
    
    
+
 
 
