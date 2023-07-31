@@ -1798,7 +1798,7 @@
                CHAIN 'Q'
             $ENDIF
             $IFDEF DATABASE.QM
-               CHAIN 'EXIT'
+               CHAIN 'OFF'
             $ENDIF
             $IFDEF DATABASE.D3
                CHAIN 'EXIT'
