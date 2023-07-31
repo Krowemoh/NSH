@@ -19,6 +19,12 @@
          EXECUTE '!echo $TERMINAL_EMULATOR' CAPTURING TERMINAL.EMULATOR
          TERMINAL.EMULATOR = TERMINAL.EMULATOR<1>
       $ENDIF
+*
+      $IFDEF DATABASE.QM
+         EXECUTE '!echo $TERM' CAPTURING ORIGINAL.TERM
+         EXECUTE '!echo $TERMINAL_EMULATOR' CAPTURING TERMINAL.EMULATOR
+         TERMINAL.EMULATOR = TERMINAL.EMULATOR<1>
+      $ENDIF
    $ENDIF
 *
    $IFDEF PLATFORM.WINDOWS
@@ -81,7 +87,12 @@
    $IFDEF DATABASE.UV
       LOGTO.FILENAME = 'UV.ACCOUNT'
    $ENDIF
+*
    $IFDEF DATABASE.D3
+      LOGTO.FILENAME = 'SYSTEM'
+   $ENDIF
+*
+   $IFDEF DATABASE.QM
       LOGTO.FILENAME = 'SYSTEM'
    $ENDIF
 *
@@ -120,7 +131,12 @@
    $IFDEF DATABASE.UV
       VOC = 'VOC'
    $ENDIF
+*
    $IFDEF DATABASE.D3
+      VOC = 'MD'
+   $ENDIF
+*
+   $IFDEF DATABASE.QM
       VOC = 'MD'
    $ENDIF
 *
@@ -136,6 +152,13 @@
                NSH.ENTRY<2> = '/tmp/.nsh/'
                NSH.ENTRY<3> = '/tmp/.nsh/'
             $ENDIF
+*
+            $IFDEF DATABASE.QM
+               NSH.ENTRY<1> = 'F'
+               NSH.ENTRY<2> = '/tmp/.nsh/'
+               NSH.ENTRY<3> = '/tmp/.nsh/'
+            $ENDIF
+*
             $IFDEF DATABASE.D3
                NSH.ENTRY<1> = 'Q'
                NSH.ENTRY<3> = 'UNIX:/tmp/.nsh/'
@@ -147,6 +170,13 @@
                NSH.ENTRY<2> = 'DOS:C:\.nsh\'
                NSH.ENTRY<3> = 'DOS:C:\.nsh\'
             $ENDIF
+*
+            $IFDEF DATABASE.QM
+               NSH.ENTRY<1> = 'F'
+               NSH.ENTRY<2> = 'DOS:C:\.nsh\'
+               NSH.ENTRY<3> = 'DOS:C:\.nsh\'
+            $ENDIF
+*
             $IFDEF DATABASE.D3
                NSH.ENTRY<1> = 'Q'
                NSH.ENTRY<3> = 'DOS:C:\.nsh\'
@@ -160,6 +190,11 @@
                $IFDEF DATABASE.UV
                   EXECUTE 'SH -c "mkdir -p /tmp/.nsh/"'
                $ENDIF
+*
+               $IFDEF DATABASE.QM
+                  EXECUTE '!mkdir -p /tmp/.nsh/'
+               $ENDIF
+*
                $IFDEF DATABASE.D3
                   EXECUTE '!mkdir -p /tmp/.nsh/'
                $ENDIF
@@ -181,6 +216,12 @@
 *
    $IFDEF DATABASE.UV
       USER.NAME = @ACCOUNT
+      PORT.NUMBER = @USERNO
+      ACCOUNT.NAME = @WHO
+   $ENDIF
+*
+   $IFDEF DATABASE.QM
+      USER.NAME = @WHO
       PORT.NUMBER = @USERNO
       ACCOUNT.NAME = @WHO
    $ENDIF
@@ -238,6 +279,12 @@
       TERMINAL.CODES = TERMINFO(0)
       TERMINAL.TYPE = FIELD(TERMINAL.CODES<1>,'|',1)
    $ENDIF
+*
+   $IFDEF DATABASE.QM
+      TERMINAL.CODES = OCONV("", "u0004")
+      TERMINAL.TYPE = TERMINAL.CODES<1>
+   $ENDIF
+*
    $IFDEF DATABASE.D3
       TERMINAL.CODES = OCONV("", "u0004")
       TERMINAL.TYPE = TERMINAL.CODES<1>
@@ -248,6 +295,13 @@
       DOWN.ARROW = 'OB'
       LEFT.ARROW = 'OD'
       RIGHT.ARROW = 'OC'
+   $ENDIF
+*
+   $IFDEF DATABASE.QM
+      UP.ARROW = '[A'
+      DOWN.ARROW = '[B'
+      LEFT.ARROW = '[D'
+      RIGHT.ARROW = '[C'
    $ENDIF
 *
    $IFDEF DATABASE.D3
@@ -429,6 +483,10 @@
       READLIST VALID.VERBS ELSE VALID.VERBS = ''
    $ENDIF
 *
+   $IFDEF DATABASE.QM
+      VALID.VERBS = ''
+   $ENDIF
+*
    $IFDEF DATABASE.D3
       VALID.VERBS = ''
    $ENDIF
@@ -480,6 +538,11 @@
       $IFDEF DATABASE.UV
          EXECUTE 'SH -c "' : COMMAND : '"' CAPTURING IPADDR
       $ENDIF
+*
+      $IFDEF DATABASE.QM
+         EXECUTE '! ' : COMMAND CAPTURING IPADDR
+      $ENDIF
+*
       $IFDEF DATABASE.D3
          EXECUTE '! ' : COMMAND CAPTURING IPADDR
       $ENDIF
@@ -546,6 +609,11 @@
          $IFDEF DATABASE.UV
             CHR = KEYIN()
          $ENDIF
+*
+         $IFDEF DATABASE.QM
+            CHR = KEYIN()
+         $ENDIF
+*
          $IFDEF DATABASE.D3
             INPUT CHR, 0
          $ENDIF
@@ -574,6 +642,11 @@
                $IFDEF DATABASE.UV
                   PRINT CHR :
                $ENDIF
+*
+               $IFDEF DATABASE.QM
+                  PRINT CHR :
+               $ENDIF
+*
                COMMAND = COMMAND : CHR
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                CONTINUE
@@ -584,6 +657,10 @@
                END
 *
                $IFDEF DATABASE.UV
+                  PRINT CHR :
+               $ENDIF
+*
+               $IFDEF DATABASE.QM
                   PRINT CHR :
                $ENDIF
 *
@@ -668,6 +745,11 @@
                            PRINT NSH.COLORS<ERROR.COLOR> : COMMAND : CLEAR.REST.OF.SCREEN :
                         END
                      $ENDIF
+*
+                     $IFDEF DATABASE.QM
+                        PRINT CLEAR.REST.OF.LINE :
+                     $ENDIF
+*
                      $IFDEF DATABASE.D3
                         PRINT CLEAR.REST.OF.LINE :
                      $ENDIF
@@ -694,6 +776,11 @@
                $IFDEF DATABASE.UV
                   CHR = KEYIN()
                $ENDIF
+*
+               $IFDEF DATABASE.QM
+                  CHR = KEYIN()
+               $ENDIF
+*
                $IFDEF DATABASE.D3
                   INPUT CHR, 0
                $ENDIF
@@ -703,6 +790,11 @@
                   $IFDEF DATABASE.UV
                      CHR = KEYIN()
                   $ENDIF
+*
+                  $IFDEF DATABASE.QM
+                     CHR = KEYIN()
+                  $ENDIF
+*
                   $IFDEF DATABASE.D3
                      INPUT CHR, 0
                   $ENDIF
@@ -712,6 +804,11 @@
                      $IFDEF DATABASE.UV
                         CHR = KEYIN()
                      $ENDIF
+*
+                     $IFDEF DATABASE.QM
+                        CHR = KEYIN()
+                     $ENDIF
+*
                      $IFDEF DATABASE.D3
                         INPUT CHR, 0
                      $ENDIF
@@ -729,6 +826,10 @@
                   PRINT CHR :
                $ENDIF
 *
+               $IFDEF DATABASE.QM
+                  PRINT CHR :
+               $ENDIF
+*
             CASE ASCII.CODE >= SEQ('A') AND ASCII.CODE <= SEQ('Z')
                IF NOT(LINUX.COMMAND.MODE) THEN
                   CHR = OCONV(CHR,'MCL')
@@ -737,8 +838,15 @@
                   PRINT CHR :
                $ENDIF
 *
+               $IFDEF DATABASE.QM
+                  PRINT CHR :
+               $ENDIF
+*
             CASE TRUE
                $IFDEF DATABASE.UV
+                  PRINT CHR :
+               $ENDIF
+               $IFDEF DATABASE.QM
                   PRINT CHR :
                $ENDIF
          END CASE
@@ -910,6 +1018,9 @@
                $IFDEF DATABASE.UV
                   PRINT @(-20) :
                $ENDIF
+               $IFDEF DATABASE.QM
+                  PRINT @(-20) :
+               $ENDIF
 *
                PRINT.SHELL.PROMPT = FALSE
                CONTINUE
@@ -920,6 +1031,10 @@
                   $IFDEF DATABASE.UV
                      PRINT @(-20) :
                   $ENDIF
+                  $IFDEF DATABASE.QM
+                     PRINT @(-20) :
+                  $ENDIF
+*
                END ELSE
                   IF POSSIBLE.COMMAND # '' THEN
                      COMMAND = POSSIBLE.COMMAND
@@ -942,6 +1057,9 @@
 *
                PRINT @(CURSOR.POSITION, TERM.HEIGHT) :
                $IFDEF DATABASE.UV
+                  PRINT @(-20) :
+               $ENDIF
+               $IFDEF DATABASE.QM
                   PRINT @(-20) :
                $ENDIF
 *
@@ -978,6 +1096,11 @@
                $IFDEF DATABASE.UV
                   STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "' : WORD : ']"'
                $ENDIF
+*
+               $IFDEF DATABASE.QM
+                  STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "' : WORD : ']" WITH A2 = "FSI]"'
+               $ENDIF
+*
                $IFDEF DATABASE.D3
                   STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "' : WORD : ']" WITH A2 = "FSI]"'
                $ENDIF
@@ -1129,6 +1252,11 @@
                   $IFDEF DATABASE.UV
                      STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH F1 = "F]""Q]"'
                   $ENDIF
+*
+                  $IFDEF DATABASE.QM
+                     STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH A1 = "D]""Q]"'
+                  $ENDIF
+*
                   $IFDEF DATABASE.D3
                      STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH A1 = "D]""Q]"'
                   $ENDIF
@@ -1553,7 +1681,7 @@
                         END
 *
                         IF PROCEED THEN
-                           COMMAND = EREPLACE(COMMAND.STACK<CHANGE.STACK.POINTER,1>,STRING1,STRING2,HOW.MANY)
+                           COMMAND = CHANGE(COMMAND.STACK<CHANGE.STACK.POINTER,1>,STRING1,STRING2,HOW.MANY)
                            CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
                            PRINT
@@ -1615,13 +1743,20 @@
                $IFDEF DATABASE.UV
                   EXECUTE 'SH -c ' : '"' : COMMAND : '"'
                $ENDIF
+*
+               $IFDEF DATABASE.QM
+                  EXECUTE '!' : COMMAND
+               $ENDIF
+*
                $IFDEF DATABASE.D3
                   EXECUTE '!' : COMMAND
                $ENDIF
             $ENDIF
+*
             $IFDEF PLATFORM.WINDOWS
                EXECUTE '! ' : '"' : COMMAND : '"'
             $ENDIF
+*
             COMMAND = ''
             CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
@@ -1639,6 +1774,9 @@
             $IFDEF DATABASE.UV
                CHAIN 'Q'
             $ENDIF
+            $IFDEF DATABASE.QM
+               CHAIN 'EXIT'
+            $ENDIF
             $IFDEF DATABASE.D3
                CHAIN 'EXIT'
             $ENDIF
@@ -1647,6 +1785,9 @@
          CASE COMMAND = 'CLEAR' OR COMMAND = 'CLS'
             $IFDEF DATABASE.UV
                COMMAND = 'CLR'
+            $ENDIF
+            $IFDEF DATABASE.QM
+               COMMAND = 'CLS'
             $ENDIF
             $IFDEF DATABASE.D3
                COMMAND = 'CLS'
@@ -1780,6 +1921,12 @@
             EXECUTE SERIES
             ACCOUNT.NAME = @WHO
          $ENDIF
+*
+         $IFDEF DATABASE.QM
+            EXECUTE SERIES
+            ACCOUNT.NAME = @WHO
+         $ENDIF
+*
          $IFDEF DATABASE.D3
             EXECUTE SERIES : ' (f'
             ACCOUNT.NAME = @ACCOUNT
@@ -1798,6 +1945,39 @@
       END ELSE IF VERB = 'SEARCH' THEN
 *
          $IFDEF DATABASE.UV
+            SERIES.LENGTH = DCOUNT(SERIES,@AM)
+            IF DCOUNT(COMMAND,' ') >= 3 THEN
+               COMMAND = CHANGE(COMMAND,'"','')
+               SEARCH.FILE = FIELD(COMMAND,' ',2)
+               SEARCH.KEY = TRIM(COMMAND[INDEX(COMMAND,SEARCH.FILE,1)+LEN(SEARCH.FILE)+1,9999])
+*
+               SERIES<SERIES.LENGTH> = 'SEARCH ' : SEARCH.FILE
+               IF SERIES.LENGTH = 2 THEN
+                  DATA ''
+               END
+               DATA SEARCH.KEY
+               DATA ''
+*
+               ECHO OFF
+            END
+*
+            SERIES<-1> = 'SAVE-LIST ' : USER.NAME : '.' : PORT.NUMBER : '.LIST'
+            EXECUTE SERIES CAPTURING RESULTS
+            ECHO ON
+*
+            PRINT
+*
+            MESSAGE = RESULTS<DCOUNT(RESULTS, @AM)-1>
+            PRINT MESSAGE
+*
+            IF MESSAGE[1,1] # 0 THEN
+               SERIES = 'GET-LIST ' : USER.NAME : '.' : PORT.NUMBER : '.LIST'
+            END ELSE
+               SERIES = ''
+            END
+         $ENDIF
+*
+         $IFDEF DATABASE.QM
             SERIES.LENGTH = DCOUNT(SERIES,@AM)
             IF DCOUNT(COMMAND,' ') >= 3 THEN
                COMMAND = CHANGE(COMMAND,'"','')
@@ -1936,7 +2116,17 @@
          PRINT @PATH
 *
       END ELSE IF VERB = '@ACCOUNT' THEN
-         PRINT @ACCOUNT
+         $IFDEF DATABASE.UV
+            PRINT @ACCOUNT
+         $ENDIF
+*
+         $IFDEF DATABASE.QM
+            PRINT @WHO
+         $ENDIF
+*
+         $IFDEF DATABASE.D3
+            PRINT @ACCOUNT
+         $ENDIF
 *
       END ELSE IF VERB = '@WHO' THEN
          PRINT @WHO
@@ -1960,11 +2150,11 @@
          PRINT 'NSH: Version ' : VERSION
 *
       END ELSE IF VERB = 'NSH-PROFILE' THEN
-         SERIES = 'EVA NSH-HISTORY-FILE ' : USER.NAME : '.nsh_profile' 
-         EXECUTE SERIES 
+         SERIES = 'EVA NSH-HISTORY-FILE ' : USER.NAME : '.nsh_profile'
+         EXECUTE SERIES
 *
       END ELSE IF VERB = 'NSH-HISTORY' THEN
-         SERIES = 'EVA NSH-HISTORY-FILE ' : USER.NAME : '.nsh_history --NO-LOCK' 
+         SERIES = 'EVA NSH-HISTORY-FILE ' : USER.NAME : '.nsh_history --NO-LOCK'
          EXECUTE SERIES
 *
       END ELSE
@@ -1995,6 +2185,10 @@
                FLUSH FLAT.FILE ELSE NULL
                CLOSESEQ FLAT.FILE
                PRINT 'NSH: Output saved to: ' : FNAME
+            $ENDIF
+*
+            $IFDEF DATABASE.QM
+               PRINT 'NSH: Not available on D3.'
             $ENDIF
 *
             $IFDEF DATABASE.D3
@@ -2040,7 +2234,12 @@
 CHECK.WINTEGRATE:NULL
 *
    WINTEGRATE.FLAG = 0
+*
    $IFDEF DATABASE.D3
+      WINTEGRATE.FLAG = 1
+   $ENDIF
+*
+   $IFDEF DATABASE.QM
       WINTEGRATE.FLAG = 1
    $ENDIF
 *
@@ -2169,6 +2368,24 @@ SETUP.WINTEGRATE:NULL
       GOSUB SET.WINTEGRATE.VALUE
    $ENDIF
 *
+   $IFDEF DATABASE.QM
+      WINT.KEY = 'Key_UpArrow'
+      WINT.VALUE = '\e[A'
+      GOSUB SET.WINTEGRATE.VALUE
+*
+      WINT.KEY = 'Key_DownArrow'
+      WINT.VALUE = '\e[B'
+      GOSUB SET.WINTEGRATE.VALUE
+*
+      WINT.KEY = 'Key_LeftArrow'
+      WINT.VALUE = '\e[D'
+      GOSUB SET.WINTEGRATE.VALUE
+*
+      WINT.KEY = 'Key_RightArrow'
+      WINT.VALUE = '\e[C'
+      GOSUB SET.WINTEGRATE.VALUE
+   $ENDIF
+*
    RETURN
 *
 *********************  S U B R O U T I N E  *********************
@@ -2178,6 +2395,12 @@ SETUP.PUTTY:NULL
    $IFDEF PLATFORM.LINUX
       $IFDEF DATABASE.UV
          EXECUTE 'SH -c "stty size"' CAPTURING TERM.SIZE
+         TERM.HEIGHT = FIELD(TERM.SIZE<1>,' ',1)
+         TERM.WIDTH = FIELD(TERM.SIZE<1>,' ',2)
+      $ENDIF
+*
+      $IFDEF DATABASE.QM
+         EXECUTE '!stty size' CAPTURING TERM.SIZE
          TERM.HEIGHT = FIELD(TERM.SIZE<1>,' ',1)
          TERM.WIDTH = FIELD(TERM.SIZE<1>,' ',2)
       $ENDIF
@@ -2201,6 +2424,7 @@ SETUP.PUTTY:NULL
    
    
    
-
-
-
+   
+   
+   
+   
