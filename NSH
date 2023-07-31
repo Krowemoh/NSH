@@ -105,7 +105,20 @@
 * SYSTEM FILE FOR VERBS
 *
    NEW.ACC.OPENED = TRUE
-   OPEN '','NEWACC' TO NEWACC.FILE ELSE
+*
+   $IFDEF DATABASE.UV
+      NEWACC.NAME = 'NEWACC'
+   $ENDIF
+*
+   $IFDEF DATABASE.QM
+      NEWACC.NAME = 'NEWVOC'
+   $ENDIF
+*
+   $IFDEF DATABASE.UV
+      NEWACC.NAME = 'NEWVOC'
+   $ENDIF
+*
+   OPEN '',NEWACC.NAME TO NEWACC.FILE ELSE
       PRINT 'NSH: Unable to open file: NEWACC'
       NEW.ACC.OPENED = FALSE
    END
@@ -298,10 +311,10 @@
    $ENDIF
 *
    $IFDEF DATABASE.QM
-      UP.ARROW = '[A'
-      DOWN.ARROW = '[B'
-      LEFT.ARROW = '[D'
-      RIGHT.ARROW = '[C'
+      UP.ARROW = 'OA'
+      DOWN.ARROW = 'OB'
+      LEFT.ARROW = 'OD'
+      RIGHT.ARROW = 'OC'
    $ENDIF
 *
    $IFDEF DATABASE.D3
@@ -1168,7 +1181,7 @@
                END
 *
             CASE NEW.ACC.OPENED AND NUMBER.OF.ARGUMENTS = 1
-               STATEMENT = 'SSELECT NEWACC = "' : TRIM(COMMAND) : ']"'
+               STATEMENT = 'SSELECT ' : NEWACC.NAME : ' = "' : TRIM(COMMAND) : ']"'
                EXECUTE STATEMENT CAPTURING RESULTS
 *
                RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
