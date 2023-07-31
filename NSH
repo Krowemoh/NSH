@@ -747,7 +747,17 @@
                      $ENDIF
 *
                      $IFDEF DATABASE.QM
-                        PRINT CLEAR.REST.OF.LINE :
+                        VERB = FIELD(COMMAND,' ',1)
+                        B = BOTTOM - INT((LEN(COMMAND)+LEN(RAW.SHELL.PROMPT))/TERM.WIDTH) - 1
+                        LOCATE(VERB,VALID.VERBS;ANY.POS) THEN
+                           PRINT @(0,B) :
+                           PRINT SHELL.PROMPT :
+                           PRINT NSH.COLORS<INPUT.COLOR> : COMMAND : CLEAR.REST.OF.SCREEN :
+                        END ELSE
+                           PRINT @(0,B) :
+                           PRINT SHELL.PROMPT :
+                           PRINT NSH.COLORS<ERROR.COLOR> : COMMAND : CLEAR.REST.OF.SCREEN :
+                        END
                      $ENDIF
 *
                      $IFDEF DATABASE.D3
