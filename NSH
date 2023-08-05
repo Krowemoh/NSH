@@ -311,10 +311,10 @@
    $ENDIF
 *
    $IFDEF DATABASE.QM
-      UP.ARROW = 'OA'
-      DOWN.ARROW = 'OB'
-      LEFT.ARROW = 'OD'
-      RIGHT.ARROW = 'OC'
+      UP.ARROW = '[A'
+      DOWN.ARROW = '[B'
+      LEFT.ARROW = '[D'
+      RIGHT.ARROW = '[C'
    $ENDIF
 *
    $IFDEF DATABASE.D3
@@ -2451,3 +2451,4 @@ SETUP.PUTTY:NULL
    
    
    
+
