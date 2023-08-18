@@ -273,6 +273,7 @@
 *
    EQU KEY.CTRL.A TO CHAR(1)
    EQU KEY.CTRL.C TO CHAR(3)
+   EQU KEY.CTRL.D TO CHAR(4)
    EQU KEY.CTRL.F TO CHAR(6)
    EQU KEY.CTRL.X TO CHAR(24)
    EQU KEY.ESCAPE TO CHAR(27)
@@ -681,7 +682,7 @@
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                CONTINUE
 *
-            CASE ASCII.CODE = SEQ(KEY.CTRL.X)
+            CASE ASCII.CODE = SEQ(KEY.CTRL.D)
                PRINT @(0,BOTTOM) :
                PRINT SHELL.PROMPT :
                PRINT CLEAR.REST.OF.SCREEN :
@@ -689,6 +690,25 @@
                HISTORY.STACK.POINTER = 0 ;
                COMMAND = ''
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+               CONTINUE
+*
+            CASE ASCII.CODE = SEQ(KEY.CTRL.X)
+               PRINT.SHELL.PROMPT = FALSE
+               HISTORY.STACK.POINTER = 0 ;
+*
+               IF INDEX(COMMAND,' ',1) = 0 THEN
+                  COMMAND = ''
+               END ELSE
+                  COMMAND = FIELD(COMMAND,' ',1,DCOUNT(COMMAND,' ')-1)
+               END
+*
+               CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
+*
+               PRINT @(0,BOTTOM) :
+               PRINT SHELL.PROMPT :
+               PRINT COMMAND :
+               PRINT CLEAR.REST.OF.SCREEN :
+*
                CONTINUE
 *
             CASE ASCII.CODE = SEQ(KEY.CTRL.A)
@@ -2451,4 +2471,5 @@ SETUP.PUTTY:NULL
    
    
    
-
+   
+   
