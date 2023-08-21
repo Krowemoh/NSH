@@ -682,7 +682,7 @@
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                CONTINUE
 *
-            CASE ASCII.CODE = SEQ(KEY.CTRL.D)
+            CASE ASCII.CODE = SEQ(KEY.CTRL.X)
                PRINT @(0,BOTTOM) :
                PRINT SHELL.PROMPT :
                PRINT CLEAR.REST.OF.SCREEN :
@@ -692,7 +692,7 @@
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
                CONTINUE
 *
-            CASE ASCII.CODE = SEQ(KEY.CTRL.X)
+            CASE ASCII.CODE = SEQ(KEY.CTRL.D)
                PRINT.SHELL.PROMPT = FALSE
                HISTORY.STACK.POINTER = 0 ;
 *
@@ -2461,3 +2461,4 @@ SETUP.PUTTY:NULL
 *
    END
 *
+
