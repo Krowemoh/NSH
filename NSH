@@ -988,22 +988,35 @@
       IF ESCAPE.SEQUENCE # '' THEN
          BEGIN CASE
             CASE ESCAPE.SEQUENCE = UP.ARROW
+               SEARCH.FAILED = FALSE
+*
                IF HISTORY.STACK.POINTER < TRUE.HISTORY.LENGTH THEN
                   HISTORY.STACK.POINTER = HISTORY.STACK.POINTER + 1
+*
                   IF COMMAND # '' AND USER.INPUT = TRUE THEN
                      SEARCH.COMMAND = COMMAND
                   END
+*
                   IF SEARCH.COMMAND # '' THEN
                      PREVIOUS.COMMAND = COMMAND
                      LOOP
                         COMMAND = COMMAND.STACK<HISTORY.STACK.POINTER,1>
-                     UNTIL (HISTORY.STACK.POINTER >= TRUE.HISTORY.LENGTH OR INDEX(COMMAND,SEARCH.COMMAND,1) # 0) AND PREVIOUS.COMMAND # COMMAND DO
+                        SEARCH.FOUND = INDEX(COMMAND,SEARCH.COMMAND,1) # 0
+                     UNTIL (HISTORY.STACK.POINTER >= TRUE.HISTORY.LENGTH OR SEARCH.FOUND) AND PREVIOUS.COMMAND # COMMAND DO
                         HISTORY.STACK.POINTER = HISTORY.STACK.POINTER + 1
                      REPEAT
+                     IF NOT(SEARCH.FOUND) THEN
+                        SEARCH.FAILED = TRUE
+                        HISTORY.STACK.POINTER = 0
+                     END
                   END
                END
 *
-               COMMAND = COMMAND.STACK<HISTORY.STACK.POINTER,1>
+               IF SEARCH.FAILED THEN
+                  COMMAND = SEARCH.COMMAND
+               END ELSE
+                  COMMAND = COMMAND.STACK<HISTORY.STACK.POINTER,1>
+               END
                USER.INPUT = FALSE
 *
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
@@ -1017,7 +1030,9 @@
                CONTINUE
 *
             CASE ESCAPE.SEQUENCE = DOWN.ARROW
-               IF HISTORY.STACK.POINTER > 1 THEN
+               SEARCH.FAILED = FALSE
+*
+               IF HISTORY.STACK.POINTER >= 0 THEN
                   HISTORY.STACK.POINTER = HISTORY.STACK.POINTER - 1
                   IF COMMAND # '' AND USER.INPUT = TRUE THEN
                      SEARCH.COMMAND = COMMAND
@@ -1026,17 +1041,23 @@
                      PREVIOUS.COMMAND = COMMAND
                      LOOP
                         COMMAND = COMMAND.STACK<HISTORY.STACK.POINTER,1>
-                     UNTIL (HISTORY.STACK.POINTER <= 0 OR INDEX(COMMAND,SEARCH.COMMAND,1) # 0) AND PREVIOUS.COMMAND # COMMAND DO
+                        SEARCH.FOUND = INDEX(COMMAND,SEARCH.COMMAND,1) # 0
+                     UNTIL (HISTORY.STACK.POINTER <= 0 OR SEARCH.FOUND) AND PREVIOUS.COMMAND # COMMAND DO
                         HISTORY.STACK.POINTER = HISTORY.STACK.POINTER - 1
                      REPEAT
+                     IF NOT(SEARCH.FOUND) THEN
+                        SEARCH.FAILED = TRUE
+                        HISTORY.STACK.POINTER = 0
+                     END
                   END
                END
 *
-               IF HISTORY.STACK.POINTER <= 0 THEN
-                  HISTORY.STACK.POINTER = 1
+               IF SEARCH.FAILED THEN
+                  COMMAND = SEARCH.COMMAND
+               END ELSE
+                  COMMAND = COMMAND.STACK<HISTORY.STACK.POINTER,1>
                END
 *
-               COMMAND = COMMAND.STACK<HISTORY.STACK.POINTER,1>
                USER.INPUT = FALSE
                CURSOR.POSITION = LEN(RAW.SHELL.PROMPT) + LEN(COMMAND)
 *
@@ -2461,5 +2482,6 @@ SETUP.PUTTY:NULL
 *
    END
 *
-
-
+   
+   
+   
