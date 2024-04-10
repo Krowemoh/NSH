@@ -988,6 +988,7 @@
       IF ESCAPE.SEQUENCE # '' THEN
          BEGIN CASE
             CASE ESCAPE.SEQUENCE = UP.ARROW
+               POSSIBLE.COMMAND = ''
                SEARCH.FAILED = FALSE
 *
                IF HISTORY.STACK.POINTER < TRUE.HISTORY.LENGTH THEN
@@ -1070,6 +1071,8 @@
                CONTINUE
 *
             CASE ESCAPE.SEQUENCE = LEFT.ARROW
+               POSSIBLE.COMMAND = ''
+*
                IF CURSOR.POSITION > LEN(RAW.SHELL.PROMPT) THEN
                   CURSOR.POSITION = CURSOR.POSITION - 1
                END
@@ -2482,6 +2485,7 @@ SETUP.PUTTY:NULL
 *
    END
 *
+   
    
    
    
