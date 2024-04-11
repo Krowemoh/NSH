@@ -287,6 +287,9 @@
 *
    EQU ESCAPE.CODE TO CHAR(27)
 *
+   HOME.POSITION = ESCAPE.CODE : '[H'
+   ERASE.SCREEN =  ESCAPE.CODE : '[2J'
+*
 * TERMINAL INITIALIZATION
 *
    $IFDEF DATABASE.UV
@@ -2267,7 +2270,42 @@
                SERIES = VERB
             END
 *
-            EXECUTE SERIES
+            LAST.POSITION = DCOUNT(SERIES,@AM)
+            LAST.COMMAND = SERIES<LAST.POSITION>
+*
+            IF COUNT(LAST.COMMAND,'>') = 1 THEN
+               EXPORT.AVAILABLE = TRUE
+               EXPORT.PATH = TRIM(FIELD(LAST.COMMAND,'>',2))
+*
+               SERIES<LAST.POSITION> = TRIM(FIELD(LAST.COMMAND,'>',1))
+               EXECUTE SERIES CAPTURING EXPORT.RESULTS
+*
+               CONVERT @AM TO CHAR(10) IN EXPORT.RESULTS
+*
+               EXPORT.RESULTS = CHANGE(EXPORT.RESULTS,HOME.POSITION,'')
+               EXPORT.RESULTS = CHANGE(EXPORT.RESULTS,ERASE.SCREEN,'')
+*
+               OPENSEQ EXPORT.PATH TO EXPORT.FILE ELSE
+                  CREATE EXPORT.FILE ELSE
+                     PRINT 'Failed to create file: ' : EXPORT.PATH
+                     EXPORT.AVAILABLE = FALSE
+                  END
+               END
+*
+               IF EXPORT.AVAILABLE THEN
+                  WEOFSEQ EXPORT.FILE
+*
+                  WRITEBLK EXPORT.RESULTS ON EXPORT.FILE ELSE
+                     PRINT 'Failed to write file: ' : EXPORT.FILE
+                  END
+*
+                  FLUSH EXPORT.FILE ELSE NULL
+                  CLOSESEQ EXPORT.FILE
+               END
+*
+            END ELSE
+               EXECUTE SERIES
+            END
          END
       END
 *
@@ -2485,7 +2523,3 @@ SETUP.PUTTY:NULL
 *
    END
 *
-   
-   
-   
-   
