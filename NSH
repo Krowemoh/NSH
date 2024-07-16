@@ -2231,7 +2231,9 @@
          LOCATE(VERB,USER.COMMAND.WORDS,1;COMMAND.POS) THEN
             SERIES = USER.COMMANDS<1,COMMAND.POS>
             IF SERIES[1,1] = '!' THEN
-               SERIES = 'SH -c ' : '"' : SERIES[2,9999] : '"'
+               USER.COMMAND = SERIES[2,9999]
+               USER.COMMAND = CHANGE(USER.COMMAND,"'","\'")
+               SERIES = \SH -c '\ :  USER.COMMAND : \'\
             END
          END
 *
@@ -2523,3 +2525,4 @@ SETUP.PUTTY:NULL
 *
    END
 *
+   
