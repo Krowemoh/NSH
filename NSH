@@ -162,19 +162,19 @@
          $IFDEF PLATFORM.LINUX
             $IFDEF DATABASE.UV
                NSH.ENTRY<1> = 'F'
-               NSH.ENTRY<2> = '/tmp/.nsh/'
-               NSH.ENTRY<3> = '/tmp/.nsh/'
+               NSH.ENTRY<2> = '/opt/nsh/'
+               NSH.ENTRY<3> = '/opt/nsh/'
             $ENDIF
 *
             $IFDEF DATABASE.QM
                NSH.ENTRY<1> = 'F'
-               NSH.ENTRY<2> = '/tmp/.nsh/'
-               NSH.ENTRY<3> = '/tmp/.nsh/'
+               NSH.ENTRY<2> = '/opt/nsh/'
+               NSH.ENTRY<3> = '/opt/nsh/'
             $ENDIF
 *
             $IFDEF DATABASE.D3
                NSH.ENTRY<1> = 'Q'
-               NSH.ENTRY<3> = 'UNIX:/tmp/.nsh/'
+               NSH.ENTRY<3> = 'UNIX:/opt/nsh/'
             $ENDIF
          $ENDIF
          $IFDEF PLATFORM.WINDOWS
@@ -201,15 +201,15 @@
          OPEN '','NSH-HISTORY-FILE' TO NSH.HISTORY.FILE ELSE
             $IFDEF PLATFORM.LINUX
                $IFDEF DATABASE.UV
-                  EXECUTE 'SH -c "mkdir -p /tmp/.nsh/"'
+                  EXECUTE 'SH -c "mkdir -p /opt/nsh/"'
                $ENDIF
 *
                $IFDEF DATABASE.QM
-                  EXECUTE '!mkdir -p /tmp/.nsh/'
+                  EXECUTE '!mkdir -p /opt/nsh/'
                $ENDIF
 *
                $IFDEF DATABASE.D3
-                  EXECUTE '!mkdir -p /tmp/.nsh/'
+                  EXECUTE '!mkdir -p /opt/nsh/'
                $ENDIF
             $ENDIF
             $IFDEF PLATFORM.WINDOWS
@@ -2526,3 +2526,4 @@ SETUP.PUTTY:NULL
    END
 *
    
+
