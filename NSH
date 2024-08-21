@@ -234,7 +234,7 @@
    $ENDIF
 *
    $IFDEF DATABASE.QM
-      USER.NAME = @WHO
+      USER.NAME = @USER
       PORT.NUMBER = @USERNO
       ACCOUNT.NAME = @WHO
    $ENDIF
@@ -2118,9 +2118,12 @@
 *
          IF FA.FILE # '' THEN
             FA.COMMAND = 'LIST DICT ' : FA.FILE
-            FA.COMMAND = FA.COMMAND : ' WITH @ID = "[' : FA.SEARCH.STRING  : ']"'
-            FA.COMMAND = FA.COMMAND : ' AND WITH F1 = "A"'
-            FA.COMMAND = FA.COMMAND : ' BY A/AMC A/AMC LONG-ITEM-NAME ID-SUPP'
+            IF FA.SEARCH.STRING THEN
+               FA.COMMAND = FA.COMMAND : ' WITH @ID = "[' : FA.SEARCH.STRING  : ']"'
+               FA.COMMAND = FA.COMMAND : ' AND WITH F1 = "A" BY F2'
+            END ELSE
+               FA.COMMAND = FA.COMMAND : ' WITH F1 = "A" BY F2'
+            END
 *
             EXECUTE FA.COMMAND
          END ELSE
@@ -2526,4 +2529,5 @@ SETUP.PUTTY:NULL
    END
 *
    
-
+   
+   
