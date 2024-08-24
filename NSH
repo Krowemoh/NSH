@@ -2323,7 +2323,7 @@
             $ENDIF
 *
          END ELSE
-            IF VERB = 'TIME' OR VERB = 'C' THEN
+            IF VERB = 'TIME' THEN
                SERIES = VERB
             END
 *
