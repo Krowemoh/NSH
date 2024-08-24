@@ -7,6 +7,10 @@
    $DEFINE DATABASE.UV
    $DEFINE PLATFORM.LINUX
 *
+   $IFDEF DATABASE.QM
+      $CATALOGUE
+   $ENDIF
+*
    $IFDEF PLATFORM.LINUX
       $IFDEF DATABASE.UV
          EXECUTE 'SH -c "echo $TERM"' CAPTURING ORIGINAL.TERM
@@ -502,6 +506,8 @@
 *
    $IFDEF DATABASE.QM
       VALID.VERBS = ''
+      SELECT NEWACC.FILE
+      READLIST VALID.VERBS ELSE VALID.VERBS = ''
    $ENDIF
 *
    $IFDEF DATABASE.D3
@@ -1165,19 +1171,21 @@
 *
                $IFDEF DATABASE.UV
                   STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "' : WORD : ']"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
                $ENDIF
 *
                $IFDEF DATABASE.QM
-                  STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "' : WORD : ']" WITH A2 = "FSI]"'
+                  STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' LIKE "' : WORD : '..."'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<1>, ' ', 1)
                $ENDIF
 *
                $IFDEF DATABASE.D3
                   STATEMENT = 'SSELECT ' : LOGTO.FILENAME : ' = "' : WORD : ']" WITH A2 = "FSI]"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
                $ENDIF
-*
-               EXECUTE STATEMENT CAPTURING RESULTS
-*
-               RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
 *
                IF RECORDS.SELECTED = 1 THEN
                   READNEXT ITEM.ID ELSE ITEM.ID = ''
@@ -1228,10 +1236,24 @@
                END
 *
             CASE NEW.ACC.OPENED AND NUMBER.OF.ARGUMENTS = 1
-               STATEMENT = 'SSELECT ' : NEWACC.NAME : ' = "' : TRIM(COMMAND) : ']"'
-               EXECUTE STATEMENT CAPTURING RESULTS
 *
-               RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+               $IFDEF DATABASE.UV
+                  STATEMENT = 'SSELECT ' : NEWACC.NAME : ' = "' : TRIM(COMMAND) : ']"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+               $ENDIF
+*
+               $IFDEF DATABASE.QM
+                  STATEMENT = 'SSELECT ' : NEWACC.NAME : ' LIKE "' : TRIM(COMMAND) : '..."'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<1>, ' ', 1)
+               $ENDIF
+*
+               $IFDEF DATABASE.D3
+                  STATEMENT = 'SSELECT ' : NEWACC.NAME : ' = "' : TRIM(COMMAND) : ']"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+               $ENDIF
 *
                IF RECORDS.SELECTED = 1 THEN
                   READNEXT ITEM.ID ELSE ITEM.ID = ''
@@ -1321,18 +1343,21 @@
 *
                   $IFDEF DATABASE.UV
                      STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH F1 = "F]""Q]"'
+                     EXECUTE STATEMENT CAPTURING RESULTS
+                     RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
                   $ENDIF
 *
                   $IFDEF DATABASE.QM
-                     STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH A1 = "D]""Q]"'
+                     STATEMENT = 'SSELECT MD LIKE "' : WORD : '..."'
+                     EXECUTE STATEMENT CAPTURING RESULTS
+                     RECORDS.SELECTED = FIELD(RESULTS<1>, ' ', 1)
                   $ENDIF
 *
                   $IFDEF DATABASE.D3
                      STATEMENT = 'SSELECT MD = "' : WORD : ']" WITH A1 = "D]""Q]"'
+                     EXECUTE STATEMENT CAPTURING RESULTS
+                     RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
                   $ENDIF
-*
-                  EXECUTE STATEMENT CAPTURING RESULTS
-                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
                END
 *
                IF RECORDS.SELECTED = 1 THEN
@@ -1413,19 +1438,46 @@
                   CONTINUE
                END
 *
-               STATEMENT = 'SSELECT ' : FILE.LOOKUP : ' = "' : WORD : ']"'
-               EXECUTE STATEMENT CAPTURING RESULTS
+               $IFDEF DATABASE.UV
+                  STATEMENT = 'SSELECT ' : FILE.LOOKUP : ' = "' : WORD : ']"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+               $ENDIF
 *
-               RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+               $IFDEF DATABASE.QM
+                  STATEMENT = 'SSELECT ' : FILE.LOOKUP : ' LIKE "' : WORD : '..."'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<1>, ' ', 1)
+               $ENDIF
+*
+               $IFDEF DATABASE.D3
+                  STATEMENT = 'SSELECT ' : FILE.LOOKUP : ' = "' : WORD : ']"'
+                  EXECUTE STATEMENT CAPTURING RESULTS
+                  RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+               $ENDIF
 *
 * DICTIONARY LOOK UP IF WE FOUND NOTHING IN FILE
 *
                BEGIN CASE
                   CASE RECORDS.SELECTED = 0
-                     STATEMENT = 'SSELECT DICT ' : FILE.LOOKUP : ' = "' : WORD : ']"'
-                     EXECUTE STATEMENT CAPTURING RESULTS
 *
-                     RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+                     $IFDEF DATABASE.UV
+                        STATEMENT = 'SSELECT DICT ' : FILE.LOOKUP : ' = "' : WORD : ']"'
+                        EXECUTE STATEMENT CAPTURING RESULTS
+                        RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+                     $ENDIF
+*
+                     $IFDEF DATABASE.QM
+                        STATEMENT = 'SSELECT DICT ' : FILE.LOOKUP : ' LIKE "' : WORD : '..."'
+                        EXECUTE STATEMENT CAPTURING RESULTS
+                        RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+                     $ENDIF
+*
+                     $IFDEF DATABASE.D3
+                        STATEMENT = 'SSELECT DICT ' : FILE.LOOKUP : ' = "' : WORD : ']"'
+                        EXECUTE STATEMENT CAPTURING RESULTS
+                        RECORDS.SELECTED = FIELD(RESULTS<2>, ' ', 1)
+                     $ENDIF
 *
                      IF RECORDS.SELECTED = 1 THEN
                         READNEXT ITEM.ID ELSE ITEM.ID = ''
